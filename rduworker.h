@@ -5,12 +5,14 @@
 #include <QUdpSocket>
 #include <QFile>
 #include <QElapsedTimer>
+#include <QMutex>
 
 class RDUWorker : public QObject
 {
     Q_OBJECT
 public:
     explicit RDUWorker(QObject *parent = nullptr);
+    QByteArray getCopy();
 public slots:
     void startWorker();
     void logPacketData(bool state);
@@ -27,6 +29,7 @@ private:
     QByteArray m_bufferTwo;
     uint32_t m_packetCount;
     uint32_t m_badPackets;
+    uint32_t m_missingPackets;
 
     QFile* m_logFile;
     QTextStream* m_stream;
@@ -35,6 +38,8 @@ private:
     QElapsedTimer m_framesStart;
 
     bool m_writeBuffer;
+
+    QMutex m_copyMux;
 
 };
 

@@ -13,6 +13,7 @@ CONFIG += c++11
 
 SOURCES += \
     ../rdu_app/build/src/simple.pb.c \
+    frontpanelrender.cpp \
     main.cpp \
     mainwindow.cpp \
     nanopb/pb_common.c \
@@ -39,6 +40,8 @@ SOURCES += \
 HEADERS += \
     ../rdu_app/build/src/simple.pb.h \
     NoSignal.h \
+    RDUConstants.h \
+    frontpanelrender.h \
     mainwindow.h \
     nanopb/pb.h \
     nanopb/pb_common.h \
@@ -75,6 +78,7 @@ HEADERS += \
     rduworker.h
 
 FORMS += \
+    frontpanelrender.ui \
     mainwindow.ui
 
 INCLUDEPATH += $$PWD/qMDNS/src/

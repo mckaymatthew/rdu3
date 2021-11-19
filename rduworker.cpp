@@ -1,15 +1,7 @@
 #include "rduworker.h"
+#include "RDUConstants.h"
 #include <QNetworkDatagram>
 
-namespace {
-    constexpr uint32_t LINES = 288;
-    constexpr uint32_t COLUMNS = 480;
-    constexpr uint32_t BYTES_PER_PIXEL = 2; //RGB565
-    constexpr uint32_t BYTES_PER_LINE = COLUMNS * BYTES_PER_PIXEL;
-    constexpr uint32_t BYTES_PER_FRAME = BYTES_PER_LINE * LINES;
-    constexpr uint32_t PACKET_OVERHEAD = 1;
-
-}
 
 RDUWorker::RDUWorker(QObject *parent)
     : QObject(parent)
@@ -26,14 +18,17 @@ RDUWorker::RDUWorker(QObject *parent)
 {
 
 }
+
 void RDUWorker::startWorker()
 {
+    connect(&m_incoming, &QUdpSocket::readyRead, this, &RDUWorker::processPendingDatagrams);
+    m_framesStart.start();
     bool result = m_incoming.bind(QHostAddress::AnyIPv4, 1337);
     if(!result) {
         emit message(QString("Failed to open port\nApp already open?"));
+    } else {
+        emit message(QString("Started Network Worker Thread."));
     }
-    connect(&m_incoming, &QUdpSocket::readyRead, this, &RDUWorker::processPendingDatagrams);
-
 }
 
 void RDUWorker::logPacketData(bool state)
@@ -46,7 +41,8 @@ void RDUWorker::processPendingDatagrams()
     while (m_incoming.hasPendingDatagrams()) {
         m_packetCount++;
         QNetworkDatagram datagram = m_incoming.receiveDatagram();
-        if(datagram.data().size() != (BYTES_PER_FRAME + PACKET_OVERHEAD)) {
+        const auto packetSize = datagram.data().size() ;
+        if(packetSize != (BYTES_PER_LINE + BYTES_PACKET_OVERHEAD)) {
             m_badPackets++;
             continue;
         }
@@ -59,10 +55,13 @@ void RDUWorker::processPendingDatagrams()
             m_badPackets++;
             continue;
         }
-
+        static uint32_t maxFrame = 0;
+        if(maxFrame < lineField) {
+            qDebug() << "Hi " << lineField;
+            maxFrame = lineField;
+        }
         if(m_logCsv) {
             if(!m_stream) {
-
                 m_logFile = new QFile("log.csv",this);
                 auto openRet = m_logFile->open(QIODevice::ReadWrite | QIODevice::Truncate);
                 if(openRet) {
@@ -80,9 +79,30 @@ void RDUWorker::processPendingDatagrams()
         uint32_t scanlineIdx = BYTES_PER_LINE * lineField;
         auto pixelData = pkt.right(BYTES_PER_LINE);
         if(m_writeBuffer) {
-            m_bufferOne.replace(scanlineIdx,pixelData);
+            m_bufferOne.replace(scanlineIdx,BYTES_PER_LINE,pixelData);
         } else {
-            m_bufferTwo.replace(scanlineIdx,pixelData);
+            m_bufferTwo.replace(scanlineIdx,BYTES_PER_LINE,pixelData);
+        }
+        if(lineField == LINES) {
+            {
+                QMutexLocker locker(&m_copyMux);
+                m_writeBuffer = !m_writeBuffer;
+            }
+            emit newFrame();
         }
     }
+    emit newStats(m_packetCount,m_badPackets);
+}
+
+QByteArray RDUWorker::getCopy()
+{
+    QMutexLocker locker(&m_copyMux);
+    char * rawPtr = nullptr;
+    if(m_writeBuffer) {
+        rawPtr = m_bufferTwo.data();
+    } else {
+        rawPtr = m_bufferOne.data();
+    }
+    QByteArray cpy(rawPtr, BYTES_PER_FRAME);
+    return cpy;
 }

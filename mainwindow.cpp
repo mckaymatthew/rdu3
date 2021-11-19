@@ -11,104 +11,110 @@
 #include <QSettings>
 #include <QPainter>
 #include <QNetworkInterface>
-namespace {
+#include "RDUConstants.h"
 
-
-}
 using namespace Qt;
 using namespace std;
+
+void MainWindow::connectPanelButton(QPushButton* but, MainWindow* target, QString onClick, QString onRelease) {
+    but->connect(but, &QPushButton::pressed, std::bind(&MainWindow::writeInjectHex, target, onClick));
+    but->connect(but, &QPushButton::released, std::bind(&MainWindow::writeInjectHex, target, onRelease));
+}
+
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
-    , m_fb(480,288,QImage::Format_RGB16)
-    , m_logFile(nullptr)
 //    , server()
 //    , cache()
 //    , browser(&server, "_zephyr._tcp.local.", &cache)
     , m_mDNS(qMDNS::getInstance())
     , msg_resp_buffer(' ',Response_size)
     , msg_resp_buffer_write(-1)
+    , m_worker()
 {
 
-    framesStart.start();
     ui->setupUi(this);
 
-    QFile csv("csr.csv");
-    auto openResult = csv.open(QFile::ReadOnly | QFile::Text);
-    if(!openResult) {
+    readCSRFile();
+    setupStateMachine();
 
-        this->ui->statusMessages->append(QString("Could not open CSR file.").arg(socket.errorString()));
-    } else {
-        bool CLK_GATE_OK = false;
-        bool CPU_RESET_OK = false;
-        QTextStream in(&csv);
-        while (!in.atEnd()){
-          QString s=in.readLine(); // reads line from file
-          if(s.contains("rgb_control_csr")) {
-              QStringList details = s.split(',');
-              QString hexAddr = details[2].last(8);
-              int value = hexAddr.toUInt(&CLK_GATE_OK, 16);
-              if(CLK_GATE_OK) {
-                  if (value == 0) {
-                      CLK_GATE_OK = false;
-                  } else {
-                      this->CLK_GATE = value;
-                      this->ui->statusMessages->append(QString("CLK GATE: 0x%1.").arg(this->CLK_GATE,8,16));
-                  }
-              }
-          }
-          if(s.contains("ctrl_reset")) {
-              QStringList details = s.split(',');
-              QString hexAddr = details[2].last(8);
-              int value = hexAddr.toUInt(&CPU_RESET_OK, 16);
-              if(CPU_RESET_OK) {
-                  if (value == 0) {
-                      CPU_RESET_OK = false;
-                  } else {
-                      this->CPU_RESET = value;
-                      this->ui->statusMessages->append(QString("CPU Reset: 0x%1.").arg(this->CPU_RESET,8,16));
-                  }
-              }
-          }
-        }
-
-    }
-//    QTimer::singleShot(1000,[this](){
-//        auto p = QPixmap::fromImage(m_fb);
-
-//        int w = newWindow->width();
-//        int h = newWindow->height();
-//        newWindow->setPixmap(p.scaled(w,h,Qt::KeepAspectRatio));
-//    });
     connect(&socket, &QTcpSocket::readyRead,this, &MainWindow::readyRead);
+    connect(&m_worker, &RDUWorker::message, [&](QString msg){this->ui->statusMessages->append(msg);});
+    connect(&m_worker, &RDUWorker::newStats, this, &MainWindow::workerStats);
+    connect(&m_worker, &RDUWorker::newFrame, this, &MainWindow::workerFrame);
+    connect(this, &MainWindow::logCsv, &m_worker, &RDUWorker::logPacketData);
+
+    m_worker.moveToThread(&m_workerThread);
+    m_workerThread.start();
+    QMetaObject::invokeMethod(&m_worker,&RDUWorker::startWorker);
 
     QString message = QString("No Signal");
-    bool result =  m_incoming.bind(QHostAddress::AnyIPv4, 1337);
-    if(!result) {
-        message = QString("Failed to open port\nApp already open?");
-        this->ui->statusMessages->append(QString("Open UDP Result: %1.").arg(result?"Success":"Fail"));
-    }
-    connect(&m_incoming, &QUdpSocket::readyRead, this, &MainWindow::processPendingDatagrams);
-
-
-    m_fb.fill(QColor("Black"));
+    QImage fb(COLUMNS,LINES,QImage::Format_RGB16);
+    fb.fill(QColor("Black"));
     QPainter p;
-    p.begin(&m_fb);
+    p.begin(&fb);
 
     p.setPen(QPen(Qt::red));
-//    p.setFont(QFont("Times", 48, QFont::Bold));
     p.setFont(QFont("Courier New", 48, QFont::Bold));
-
-    p.drawText(m_fb.rect(), Qt::AlignCenter, message);
+    p.drawText(fb.rect(), Qt::AlignCenter, message);
     p.end();
     newWindow = new QLabel(nullptr);
-    newWindow->setPixmap(QPixmap::fromImage(m_fb));
+    newWindow->setPixmap(QPixmap::fromImage(fb));
     newWindow->show();
     newWindow->raise();
-    newWindow->setMinimumSize(480, 288);
-    connect (m_mDNS,  &qMDNS::hostFound,
-             this,    &MainWindow::onDeviceDiscovered);
+    newWindow->setMinimumSize(COLUMNS, LINES);
 
+    connectPanelButton(this->ui->buttonExit,this,"FE0E10FD","FE0E00FD");
+    connectPanelButton(this->ui->button_Menu,this,"FE0D08FD","FE0D00FD");
+
+    QSettings settings("KE0PSL", "RDU3");
+    restoreGeometry(settings.value("mainWindow/geometry").toByteArray());
+    newWindow->restoreGeometry(settings.value("newWindow/geometry").toByteArray());
+
+
+    machine.start();
+}
+MainWindow::~MainWindow()
+{
+    writeWord(CLK_GATE,0);
+
+    m_workerThread.quit();
+    m_workerThread.wait();
+    delete ui;
+}
+
+void MainWindow::workerStats(uint32_t packets, uint32_t badPackets)
+{
+    this->ui->totalPackets->setText(QString("Packets: %1").arg(packets));
+    this->ui->totalPacketsBad->setText(QString("Bad Packets: %1").arg(badPackets));
+}
+
+
+void MainWindow::workerFrame()
+{
+    m_framebuffer = m_worker.getCopy();
+    QImage img((const uchar*) m_framebuffer.data(), COLUMNS, LINES, COLUMNS * sizeof(uint16_t),QImage::Format_RGB16);
+    auto p = QPixmap::fromImage(img);
+    int w = newWindow->width();
+    int h = newWindow->height();
+    newWindow->setPixmap(p.scaled(w,h,Qt::KeepAspectRatio));
+
+}
+
+void MainWindow::closeEvent(QCloseEvent *event)
+{
+
+    QSettings settings("KE0PSL", "RDU3");
+    qDebug() << "Close event" << settings.fileName();
+//    settings.setValue("mainWindow/geometry", saveGeometry());
+//    settings.setValue("newWindow/geometry", newWindow->saveGeometry());
+
+    writeWord(CLK_GATE,0);
+    QMainWindow::closeEvent(event);
+}
+
+void MainWindow::setupStateMachine()
+{
 
     QState *errorRestart = new QState();
     QState *queryMDNS = new QState();
@@ -231,135 +237,59 @@ MainWindow::MainWindow(QWidget *parent)
         setupTimeout.start(1000);
     });
 
+}
 
-    if(openResult) {
-        machine.start();
+void MainWindow::readCSRFile()
+{
+
+    QFile csv("csr.csv");
+    auto openResult = csv.open(QFile::ReadOnly | QFile::Text);
+    if(!openResult) {
+
+        this->ui->statusMessages->append(QString("Could not open CSR file.").arg(socket.errorString()));
+    } else {
+        bool CLK_GATE_OK = false;
+        bool CPU_RESET_OK = false;
+        QTextStream in(&csv);
+        while (!in.atEnd()){
+          QString s=in.readLine(); // reads line from file
+          if(s.contains("rgb_control_csr")) {
+              QStringList details = s.split(',');
+              QString hexAddr = details[2].last(8);
+              int value = hexAddr.toUInt(&CLK_GATE_OK, 16);
+              if(CLK_GATE_OK) {
+                  if (value == 0) {
+                      CLK_GATE_OK = false;
+                  } else {
+                      this->CLK_GATE = value;
+                      this->ui->statusMessages->append(QString("CLK GATE: 0x%1.").arg(this->CLK_GATE,8,16));
+                  }
+              }
+          }
+          if(s.contains("ctrl_reset")) {
+              QStringList details = s.split(',');
+              QString hexAddr = details[2].last(8);
+              int value = hexAddr.toUInt(&CPU_RESET_OK, 16);
+              if(CPU_RESET_OK) {
+                  if (value == 0) {
+                      CPU_RESET_OK = false;
+                  } else {
+                      this->CPU_RESET = value;
+                      this->ui->statusMessages->append(QString("CPU Reset: 0x%1.").arg(this->CPU_RESET,8,16));
+                  }
+              }
+          }
+        }
+
     }
-
-    QSettings settings("KE0PSL", "RDU3");
-    restoreGeometry(settings.value("mainWindow/geometry").toByteArray());
-    newWindow->restoreGeometry(settings.value("newWindow/geometry").toByteArray());
-}
-MainWindow::~MainWindow()
-{
-    writeWord(CLK_GATE,0);
-    delete ui;
-}
-void MainWindow::closeEvent(QCloseEvent *event)
-{
-
-    QSettings settings("KE0PSL", "RDU3");
-    qDebug() << "Close event" << settings.fileName();
-    settings.setValue("mainWindow/geometry", saveGeometry());
-    settings.setValue("newWindow/geometry", newWindow->saveGeometry());
-
-    writeWord(CLK_GATE,0);
-    QMainWindow::closeEvent(event);
 }
 void MainWindow::updateState(QString note) {
-
-    this->ui->statusMessages->append(note);
-}
-
-void MainWindow::processPendingDatagrams() {
-    bool dispEven = this->ui->enEven->isChecked();
-    bool dispOdd = this->ui->enOdd->isChecked();
-    if(!m_logFile && this->ui->logCSV->isChecked()) {
-
-        m_logFile = new QFile("log.csv",this);
-        auto openRet = m_logFile->open(QIODevice::ReadWrite | QIODevice::Truncate);
-        if(openRet) {
-            this->ui->statusMessages->append("Open Log CSV.");
-            m_stream = new QTextStream(m_logFile);
-            *m_stream << "Packet,Time,LineNumber" << endl;
-        } else {
-        }
+    //Can get called during destruction
+    if(this->ui && this->ui->statusMessages) {
+        this->ui->statusMessages->append(note);
     }
-    while (m_incoming.hasPendingDatagrams()) {
-        pkt_cnt++;
-        QNetworkDatagram datagram = m_incoming.receiveDatagram();
-        auto pkt = datagram.data();
-        auto header = pkt.data() + 2 ;
-        uint32_t lineField = *((uint32_t*)header);
-        if(lineField > 288) {
-            continue;
-        }
-
-        if(m_stream) {
-            auto time = framesStart.nsecsElapsed();
-            *m_stream << QString("%1,%2,%3").arg(pkt_cnt).arg(time).arg(lineField) << endl;
-        }
-        uint16_t* asRGB = (uint16_t*)(pkt.data() + 6);
-
-        bool doScanline = true;
-
-        bool isEven = lineField % 2 == 0;
-        pkt_even_cnt = pkt_even_cnt + (isEven?1:0);
-        pkt_odd_cnt = pkt_odd_cnt + (isEven?0:1);
-        if( (isEven && dispEven) || (!isEven && dispOdd)) {
-            if(doScanline) {
-                uchar* scanLine = m_fb.scanLine(lineField);
-                memcpy(scanLine, asRGB, pkt.size() - 6);
-            } else {
-                for(int i = 0; i < 480; i++) {
-                    auto dat = *(asRGB+i);
-    //                m_fb.setPixelColor(i,lineField,dat);
-                    uint16_t  red_mask = 0xF800;
-                    uint16_t green_mask = 0x7E0;
-                    uint16_t blue_mask = 0x1F;
-                    int red_value = (dat & red_mask) >> 11;
-                    int green_value = (dat & green_mask) >> 5;
-                    int blue_value = (dat & blue_mask);
-
-                    red_value  = red_value << 3;
-                    green_value = green_value << 2;
-                    blue_value  = blue_value << 3;
-                    QColor rgbDat = QColor(red_value,green_value,blue_value);
-                    m_fb.setPixelColor(i,lineField,rgbDat);
-                }
-            }
-        }
-    }
-    auto p = QPixmap::fromImage(m_fb);
-
-    int w = newWindow->width();
-    int h = newWindow->height();
-    newWindow->setPixmap(p.scaled(w,h,Qt::KeepAspectRatio));
-//    if(this->ui->scale->isChecked()) {
-
-//    int w = this->ui->fb_label->width();
-//    int h = this->ui->fb_label->height();
-//    if(this->ui->scale->isChecked()) {
-//        this->ui->fb_label->setPixmap(p.scaled(480*this->ui->scaleBox->value(),288*this->ui->scaleBox->value(),Qt::KeepAspectRatio));
-//    } else {
-//        this->ui->fb_label->setPixmap(p);
-//    }
-//
-
-    this->ui->evenCount->setText(QString("Even: %1").arg(pkt_even_cnt));
-    this->ui->oddCount->setText(QString("Odd: %1").arg(pkt_odd_cnt));
-    this->ui->deltaCount->setText(QString("Delta: %1").arg(pkt_even_cnt-pkt_odd_cnt));
 }
 
-void MainWindow::on_clearFb_clicked()
-{
-    m_fb.fill(QColor("Black"));
-
-}
-
-void MainWindow::on_toPng_clicked()
-{
-    QFile pngFile("fb.png");
-    pngFile.open(QIODevice::WriteOnly);
-    m_fb.save(&pngFile,"PNG");
-
-}
-
-void MainWindow::on_pause_clicked()
-{
-    this->ui->enEven->setChecked(!this->ui->enEven->isChecked());
-    this->ui->enOdd->setChecked(!this->ui->enOdd->isChecked());
-}
 
 void MainWindow::onDeviceDiscovered (const QHostInfo& info) {
 //    this->ui->statusMessages->append(QString("Found device: %1 (%2)").arg(info.hostName()).arg(info.addresses().first().toString()));
@@ -405,7 +335,23 @@ void MainWindow::readyRead() {
     }
 
 }
+void MainWindow::writeInjectHex(QString toInjectHex) {
+    writeInject(QByteArray::fromHex(toInjectHex.toLatin1()));
+}
+void MainWindow::writeInject(QByteArray toInject) {
+    Request r = Request_init_default;
+    if(toInject.size() > sizeof(r.payload.inject.data.bytes)) {
+        this->ui->statusMessages->append(QString("Inject request too big.  %1.").arg(toInject.size()));
+        return;
+    }
+    r.which_payload = Request_inject_tag;
+    r.payload.inject.data.size = toInject.size();
+    for(int i = 0; i < toInject.size(); i++) {
+        r.payload.inject.data.bytes[i] = toInject[i];
+    }
+    writeRequest(r);
 
+}
 void MainWindow::writeRequest(Request r) {
     if(socket.isValid()) {
         uint8_t buffer[Request_size];
@@ -458,3 +404,8 @@ void MainWindow::on_halt_cpu_clicked()
     writeWord(CPU_RESET+1,9); //unaligned write causes CPU to fault
 }
 
+
+void MainWindow::on_logCSV_stateChanged(int)
+{
+    emit logCsv(this->ui->logCSV->isChecked());
+}

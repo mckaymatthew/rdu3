@@ -16,15 +16,13 @@
 #include <QLabel>
 #include "simple.pb.h"
 #include "pb.h"
-//#include <qmdnsengine/server.h>
-//#include <qmdnsengine/resolver.h>
-//#include <qmdnsengine/cache.h>
-//#include <qmdnsengine/browser.h>
-
+#include "rduworker.h"
+#include <QThread>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
 QT_END_NAMESPACE
+class QPushButton;
 
 class MainWindow : public QMainWindow
 {
@@ -37,11 +35,11 @@ signals:
     void foundHost();
     void pingResponse();
     void gotAck();
+    void logCsv(bool log);
 private slots:
-    void processPendingDatagrams();
-    void on_clearFb_clicked();
-    void on_toPng_clicked();
-    void on_pause_clicked();
+    void workerStats(uint32_t packets, uint32_t badPackets);
+    void workerFrame();
+
 
     void onDeviceDiscovered (const QHostInfo& info);
     void readyRead();
@@ -55,22 +53,27 @@ private slots:
 
     void on_halt_cpu_clicked();
 
+    void on_logCSV_stateChanged(int arg1);
+
+
 protected:
     void closeEvent(QCloseEvent *event);
 private:
+    void setupStateMachine();
+    void readCSRFile();
     void updateState(QString note);
+    void connectPanelButton(QPushButton* but, MainWindow* target, QString onClick, QString onRelease);
+
 
     Ui::MainWindow *ui;
-    QUdpSocket m_incoming;
-    QImage m_fb;
-    QFile* m_logFile;
-    QTextStream* m_stream = nullptr;
+
+    QThread m_workerThread;
+    RDUWorker m_worker;
+    QByteArray m_framebuffer;
+
     QByteArray msg_resp_buffer;
     int msg_resp_buffer_write = -1;
     int msg_resp_buffer_idx = 0;
-    int pkt_cnt = 0;
-    int pkt_even_cnt = 0;
-    int pkt_odd_cnt = 0;
 
 //    QMdnsEngine::Server server;
 //    QMdnsEngine::Cache cache;
@@ -84,13 +87,18 @@ private:
     QTimer periodicPing;
     QTimer pingTimeout;
     QTimer setupTimeout;
-    QElapsedTimer framesStart;
 
     void writeWord(uint32_t addr, uint32_t data);
     void writeRequest(Request r);
-
+    void writeInject(QByteArray toInject);
+    void writeInjectHex(QString toInjectHex);
 
     uint32_t CLK_GATE = 0xf0003000;
     uint32_t CPU_RESET = 0xf0000800;
+
+    struct {
+        QByteArray press;
+        QByteArray release;
+    } typedef SimpleButton_t;
 };
 #endif // MAINWINDOW_H
