@@ -161,13 +161,6 @@
          </property>
         </widget>
        </item>
-       <item row="1" column="3">
-        <widget class="QPushButton" name="targetDynamic">
-         <property name="text">
-          <string>Setup Tx Buff</string>
-         </property>
-        </widget>
-       </item>
        <item row="0" column="3">
         <spacer name="horizontalSpacer">
          <property name="orientation">

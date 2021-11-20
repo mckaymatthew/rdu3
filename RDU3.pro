@@ -13,6 +13,7 @@ CONFIG += c++11
 
 SOURCES += \
     ../rdu_app/build/src/simple.pb.c \
+    csrmap.cpp \
     frontpanelrender.cpp \
     main.cpp \
     mainwindow.cpp \
@@ -35,12 +36,14 @@ SOURCES += \
 #    qmdnsengine/src/src/resolver.cpp \
 #    qmdnsengine/src/src/server.cpp \
  \#    qmdnsengine/src/src/service.cpp
+    rducontroller.cpp \
     rduworker.cpp
 
 HEADERS += \
     ../rdu_app/build/src/simple.pb.h \
     NoSignal.h \
     RDUConstants.h \
+    csrmap.h \
     frontpanelrender.h \
     mainwindow.h \
     nanopb/pb.h \
@@ -75,6 +78,7 @@ HEADERS += \
 #    qmdnsengine/src/src/resolver_p.h \
 #    qmdnsengine/src/src/server_p.h \
  \#    qmdnsengine/src/src/service_p.h
+    rducontroller.h \
     rduworker.h
 
 FORMS += \
