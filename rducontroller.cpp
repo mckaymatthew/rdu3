@@ -71,8 +71,9 @@ void RDUController::setupStateMachine()
     s_ping->addTransition(this,&RDUController::pingResponse, s_connected);
 \
     auto setupStates = {s_enablePixelClock, s_setupHostData, s_disablePixelClock};
-    //Socket errors.
     auto socketStates = {s_connectToRdu,s_connected,s_ping,s_disablePixelClock, s_setupHostData, s_enablePixelClock};
+    auto notReadyStates = {s_errorRestart, s_queryMDNS,s_connectToRdu};
+    auto readyStates = {s_connected, s_disablePixelClock, s_setupHostData, s_enablePixelClock, s_ping};
     for(auto state: setupStates) {
         auto t_timeoutTransition = state->addTransition(&setupTimeout, &QTimer::timeout,s_errorRestart);
         connect(t_timeoutTransition, &QSignalTransition::triggered, this, &RDUController::notifyTimeout);
@@ -80,6 +81,12 @@ void RDUController::setupStateMachine()
     for(auto s: socketStates) {
         //Todo: Are there other socket errors that can occur?
         s->addTransition(&socket,&QTcpSocket::disconnected, s_errorRestart);
+    }
+    for(auto s: notReadyStates) {
+        connect(s, &QState::entered, [this](){emit this->RDUNotReady();});
+    }
+    for(auto s: readyStates) {
+        connect(s, &QState::entered, [this](){emit this->RDUReady();});
     }
 
 
@@ -120,7 +127,7 @@ void RDUController::notifyTimeout() {
     emit logMessage("Failed to setup RDU configuration.");
 }
 void RDUController::doQueryMdns() {
-    emit logMessage("Query network for IC-7300 RDU...");
+    emit logMessageWithError("Query network for IC-7300 RDU...","Find RDU...");
     m_mDNS->lookup("rdu_ic7300.local");
     this->mdnsQueryTimeout.setSingleShot(true);
     this->mdnsQueryTimeout.start(5000);
@@ -132,7 +139,7 @@ void RDUController::notifyMdnsTimeout() {
 void RDUController::doConnectToRdu() {
     //auto addr = rduHost.addresses().first();
     QHostAddress addr = QHostAddress("10.0.0.128");
-    emit logMessage(QString("Found RDU at %1, connecting...").arg(addr.toString()));
+    emit logMessageWithError(QString("Found RDU at %1, connecting...").arg(addr.toString()),"Connecting");
     socket.connectToHost(addr, 4242);
     connectTimeout.start(1500);
 }
@@ -142,6 +149,7 @@ void RDUController::notifyConnectTimeout() {
 }
 void RDUController::notifyConnected() {
     emit logMessage("Connected.");
+    emit RDUReady();
     periodicPing.start(1000);
 }
 

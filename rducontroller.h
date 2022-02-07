@@ -39,10 +39,14 @@ public slots:
     void doClkEnable();
 
 signals:
+    void RDUReady();
+    void RDUNotReady();
+
     void foundHost();
     void pingResponse();
     void gotAck();
     void logMessage(QString);
+    void logMessageWithError(QString, QString);
 private:
     QList<QSharedPointer<QState>> m_states;
     QStateMachine machine;

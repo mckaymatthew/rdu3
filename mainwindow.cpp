@@ -14,14 +14,10 @@
 using namespace Qt;
 using namespace std;
 
-void MainWindow::connectPanelButton(QPushButton* but, RDUController* target, QString onClick, QString onRelease) {
-    but->connect(but, &QPushButton::pressed, std::bind(&RDUController::writeInjectHex, target, onClick));
-    but->connect(but, &QPushButton::released, std::bind(&RDUController::writeInjectHex, target, onRelease));
-}
-
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
+    , m_settings("KE0PSL", "RDU3")
     , m_workerThread(nullptr)
     , m_worker(nullptr)
     , m_controller()
@@ -40,6 +36,11 @@ MainWindow::MainWindow(QWidget *parent)
     m_worker = new RDUWorker(m_workerThread);
 //    m_worker->moveToThread(m_workerThread);
     connect(&m_controller, &RDUController::logMessage, [&](QString msg){this->ui->statusMessages->append(msg);});
+    connect(&m_controller, &RDUController::logMessageWithError, [&](QString msg, QString err){
+        this->ui->statusMessages->append(msg);
+        this->drawError(err);
+    });
+
     connect(m_worker, &RDUWorker::message, [&](QString msg){this->ui->statusMessages->append(msg);});
     connect(m_worker, &RDUWorker::newStats, this, &MainWindow::workerStats);
     connect(m_worker, &RDUWorker::newFrame, this, &MainWindow::workerFrame);
@@ -47,7 +48,20 @@ MainWindow::MainWindow(QWidget *parent)
 
     m_workerThread->start();
     QMetaObject::invokeMethod(m_worker,&RDUWorker::startWorker);
+    drawError("");
 
+    bool showConsole = m_settings.value("mainWindow/showConsole",QVariant::fromValue(true)).toBool();
+    this->ui->actionShow_Console->setChecked(showConsole);
+    this->on_actionShow_Console_toggled(showConsole);
+//    this->ui->groupBox_3->setVisible(showConsole);
+//    restoreGeometry(settings.value("mainWindow/geometry").toByteArray());
+
+}
+void MainWindow::drawError() {
+    drawError(m_errorLast);
+}
+void MainWindow::drawError(QString error){
+    m_errorLast = error;
     QString message = QString("No Signal");
     QImage fb(COLUMNS,LINES,QImage::Format_RGB16);
     fb.fill(QColor("Black"));
@@ -56,22 +70,12 @@ MainWindow::MainWindow(QWidget *parent)
 
     p.setPen(QPen(Qt::red));
     p.setFont(QFont("Courier New", 48, QFont::Bold));
-    p.drawText(fb.rect(), Qt::AlignCenter, message);
+    p.drawText(fb.rect(), Qt::AlignCenter, QString("%1\n%2").arg(message).arg(error));
     p.end();
-    newWindow = new QLabel(nullptr);
-    newWindow->setPixmap(QPixmap::fromImage(fb));
-    newWindow->show();
-    newWindow->raise();
-    newWindow->setMinimumSize(COLUMNS, LINES);
-
-    connectPanelButton(this->ui->buttonExit,&m_controller,"FE0E10FD","FE0E00FD");
-    connectPanelButton(this->ui->button_Menu,&m_controller,"FE0D08FD","FE0D00FD");
-
-    QSettings settings("KE0PSL", "RDU3");
-    restoreGeometry(settings.value("mainWindow/geometry").toByteArray());
-    newWindow->restoreGeometry(settings.value("newWindow/geometry").toByteArray());
-
-
+    int w = this->ui->renderZone->width();
+    int h = this->ui->renderZone->height();
+    this->ui->renderZone->setPixmap(QPixmap::fromImage(fb).scaled(w,h,Qt::KeepAspectRatio));
+    this->ui->renderZone->setMinimumSize(COLUMNS, LINES);
 }
 MainWindow::~MainWindow()
 {
@@ -95,12 +99,16 @@ void MainWindow::workerFrame()
     m_framebuffer = m_worker->getCopy();
     QImage img((const uchar*) m_framebuffer.data(), COLUMNS, LINES, COLUMNS * sizeof(uint16_t),QImage::Format_RGB16);
     auto p = QPixmap::fromImage(img);
-    int w = newWindow->width();
-    int h = newWindow->height();
-    newWindow->setPixmap(p.scaled(w,h,Qt::KeepAspectRatio));
+    int w = this->ui->renderZone->width();
+    int h = this->ui->renderZone->height();
+    this->ui->renderZone->setPixmap(p.scaled(w,h,Qt::KeepAspectRatio));
 
 }
 
+void MainWindow::resizeEvent(QResizeEvent *event) {
+    drawError();
+    QMainWindow::resizeEvent(event);
+}
 void MainWindow::closeEvent(QCloseEvent *event)
 {
 
@@ -121,30 +129,66 @@ void MainWindow::updateState(QString note) {
 }
 
 
-void MainWindow::on_clk_gate_enable_clicked()
-{
-    m_controller.writeWord(CSRMap::get().CLK_GATE,1);
+void MainWindow::clickPanelButton(QString onClick, QString onRelease, int delayMs) {
+    m_controller.writeInjectHex(onClick);
+    QTimer::singleShot(delayMs, [this, onRelease]() {
+        this->m_controller.writeInjectHex(onRelease);
+    });
 }
 
-void MainWindow::on_clk_gate_disable_clicked()
+void MainWindow::on_actionExit_FRONT_triggered()
 {
+    updateState("Pressing Exit button.");
+    clickPanelButton("FE0E10FD","FE0E00FD", 100);
+}
 
+void MainWindow::on_actionMenu_triggered()
+{
+    updateState("Pressing Menu button.");
+    clickPanelButton("FE0D08FD","FE0D00FD", 100);
+}
+
+void MainWindow::on_actionInhibit_Transmit_triggered()
+{
+    updateState("Debug: Inhibit Tx.");
     m_controller.writeWord(CSRMap::get().CLK_GATE,0);
 }
 
-void MainWindow::on_cpu_reset_clicked()
+void MainWindow::on_actionEnable_Transmit_triggered()
 {
+    updateState("Debug: Enable Tx.");
+    m_controller.writeWord(CSRMap::get().CLK_GATE,1);
+}
+
+void MainWindow::on_actionResetSOC_triggered()
+{
+    updateState("Debug: Rest SOC.");
     m_controller.writeWord(CSRMap::get().CPU_RESET,1);
 }
 
-
-void MainWindow::on_halt_cpu_clicked()
+void MainWindow::on_actionHaltSOC_triggered()
 {
+    updateState("Debug: Halt SOC.");
     m_controller.writeWord(CSRMap::get().CPU_RESET+1,9); //unaligned write causes CPU to fault
 }
 
-
-void MainWindow::on_logCSV_stateChanged(int)
+void MainWindow::on_actionLog_Network_Metadata_toggled(bool arg1)
 {
-    emit logCsv(this->ui->logCSV->isChecked());
+    updateState(QString("Debug: High speed network metadata logging to %1.").arg(arg1?"Enabled":"Disabled"));
+    emit logCsv(arg1);
 }
+
+
+void MainWindow::on_actionShow_Console_toggled(bool arg1)
+{
+    m_settings.setValue("mainWindow/showConsole", arg1);
+    if(!arg1) {
+        auto currentSize = size();
+        auto removeSize = this->ui->groupBox_3->size();
+        auto newHeight = currentSize.height() - removeSize.height();
+        this->resize(currentSize.width(), newHeight);
+    }
+    this->ui->groupBox_3->setVisible(arg1);
+
+}
+

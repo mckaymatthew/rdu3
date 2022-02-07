@@ -2,14 +2,6 @@
 <ui version="4.0">
  <class>MainWindow</class>
  <widget class="QMainWindow" name="MainWindow">
-  <property name="geometry">
-   <rect>
-    <x>0</x>
-    <y>0</y>
-    <width>562</width>
-    <height>499</height>
-   </rect>
-  </property>
   <property name="windowTitle">
    <string>IC7300 Remote Desktop</string>
   </property>
@@ -18,22 +10,49 @@
     <property name="leftMargin">
      <number>0</number>
     </property>
+    <property name="topMargin">
+     <number>0</number>
+    </property>
     <property name="rightMargin">
      <number>0</number>
     </property>
     <property name="bottomMargin">
      <number>0</number>
     </property>
-    <item row="3" column="0" colspan="2">
+    <item row="1" column="0" colspan="2">
      <widget class="QGroupBox" name="groupBox_3">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="maximumSize">
+       <size>
+        <width>16777215</width>
+        <height>150</height>
+       </size>
+      </property>
       <property name="title">
-       <string>Status</string>
+       <string>Console</string>
       </property>
       <layout class="QGridLayout" name="gridLayout">
-       <item row="0" column="2">
-        <widget class="QLabel" name="totalPacketsBad">
+       <property name="leftMargin">
+        <number>0</number>
+       </property>
+       <property name="topMargin">
+        <number>0</number>
+       </property>
+       <property name="rightMargin">
+        <number>0</number>
+       </property>
+       <property name="bottomMargin">
+        <number>0</number>
+       </property>
+       <item row="0" column="1">
+        <widget class="QLabel" name="totalPackets">
          <property name="text">
-          <string>Bad:</string>
+          <string>Packets:</string>
          </property>
         </widget>
        </item>
@@ -44,10 +63,10 @@
          </property>
         </widget>
        </item>
-       <item row="0" column="1">
-        <widget class="QLabel" name="totalPackets">
+       <item row="0" column="2">
+        <widget class="QLabel" name="totalPacketsBad">
          <property name="text">
-          <string>Packets:</string>
+          <string>Bad:</string>
          </property>
         </widget>
        </item>
@@ -61,139 +80,26 @@
       </layout>
      </widget>
     </item>
-    <item row="1" column="0" colspan="2">
-     <widget class="QGroupBox" name="groupBox">
-      <property name="title">
-       <string>Debug</string>
+    <item row="0" column="0">
+     <widget class="QLabel" name="renderZone">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
       </property>
-      <layout class="QGridLayout" name="gridLayout_2">
-       <item row="3" column="1">
-        <widget class="QCheckBox" name="logCSV">
-         <property name="text">
-          <string>Log Network Metadata</string>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="1">
-        <widget class="QWidget" name="widget" native="true">
-         <layout class="QHBoxLayout" name="horizontalLayout">
-          <property name="spacing">
-           <number>6</number>
-          </property>
-          <property name="leftMargin">
-           <number>0</number>
-          </property>
-          <property name="topMargin">
-           <number>0</number>
-          </property>
-          <property name="rightMargin">
-           <number>0</number>
-          </property>
-          <property name="bottomMargin">
-           <number>0</number>
-          </property>
-          <item>
-           <widget class="QPushButton" name="button_Menu">
-            <property name="text">
-             <string>Menu</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QPushButton" name="button_function">
-            <property name="text">
-             <string>Function</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QPushButton" name="button_mscope">
-            <property name="text">
-             <string>M.Scope</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QPushButton" name="button_Quick">
-            <property name="text">
-             <string>Quick</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QPushButton" name="buttonExit">
-            <property name="text">
-             <string>Exit</string>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </widget>
-       </item>
-       <item row="1" column="3">
-        <spacer name="horizontalSpacer_2">
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>40</width>
-           <height>20</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-      </layout>
-     </widget>
-    </item>
-    <item row="2" column="0" colspan="2">
-     <widget class="QGroupBox" name="groupBox_4">
-      <property name="title">
-       <string>RDU Registers</string>
+      <property name="minimumSize">
+       <size>
+        <width>480</width>
+        <height>275</height>
+       </size>
       </property>
-      <layout class="QGridLayout" name="gridLayout_4">
-       <item row="0" column="0">
-        <widget class="QPushButton" name="clk_gate_enable">
-         <property name="text">
-          <string>Pixel Clock Enable</string>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="2">
-        <widget class="QPushButton" name="cpu_reset">
-         <property name="text">
-          <string>CPU Reset</string>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="3">
-        <spacer name="horizontalSpacer">
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>40</width>
-           <height>20</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-       <item row="1" column="0">
-        <widget class="QPushButton" name="clk_gate_disable">
-         <property name="text">
-          <string>Pixel Clock Inhibit</string>
-         </property>
-        </widget>
-       </item>
-       <item row="1" column="2">
-        <widget class="QPushButton" name="halt_cpu">
-         <property name="text">
-          <string>Halt CPU</string>
-         </property>
-        </widget>
-       </item>
-      </layout>
+      <property name="frameShape">
+       <enum>QFrame::NoFrame</enum>
+      </property>
+      <property name="text">
+       <string>Da Render Zone</string>
+      </property>
      </widget>
     </item>
    </layout>
@@ -203,12 +109,98 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>562</width>
-     <height>22</height>
+     <width>488</width>
+     <height>24</height>
     </rect>
    </property>
+   <widget class="QMenu" name="menuButtons">
+    <property name="title">
+     <string>File</string>
+    </property>
+    <addaction name="actionConnect"/>
+    <addaction name="actionDisconnect"/>
+    <addaction name="actionShow_Console"/>
+   </widget>
+   <widget class="QMenu" name="menuButtons_2">
+    <property name="title">
+     <string>Buttons</string>
+    </property>
+    <addaction name="actionMenu"/>
+    <addaction name="actionExit_FRONT"/>
+   </widget>
+   <widget class="QMenu" name="menuDebug">
+    <property name="title">
+     <string>Debug</string>
+    </property>
+    <addaction name="actionInhibit_Transmit"/>
+    <addaction name="actionEnable_Transmit"/>
+    <addaction name="actionHaltSOC"/>
+    <addaction name="actionResetSOC"/>
+    <addaction name="actionLog_Network_Metadata"/>
+   </widget>
+   <addaction name="menuButtons"/>
+   <addaction name="menuButtons_2"/>
+   <addaction name="menuDebug"/>
   </widget>
-  <widget class="QStatusBar" name="statusbar"/>
+  <action name="actionConnect">
+   <property name="text">
+    <string>Connect</string>
+   </property>
+  </action>
+  <action name="actionDisconnect">
+   <property name="text">
+    <string>Disconnect</string>
+   </property>
+  </action>
+  <action name="actionMenu">
+   <property name="text">
+    <string>Menu</string>
+   </property>
+  </action>
+  <action name="actionInhibit_Transmit">
+   <property name="text">
+    <string>Inhibit Transmit</string>
+   </property>
+  </action>
+  <action name="actionEnable_Transmit">
+   <property name="text">
+    <string>Enable Transmit</string>
+   </property>
+  </action>
+  <action name="actionHaltSOC">
+   <property name="text">
+    <string>Halt SOC</string>
+   </property>
+  </action>
+  <action name="actionResetSOC">
+   <property name="text">
+    <string>Reset SOC</string>
+   </property>
+  </action>
+  <action name="actionExit_FRONT">
+   <property name="text">
+    <string> Exit</string>
+   </property>
+   <property name="toolTip">
+    <string> Exit</string>
+   </property>
+  </action>
+  <action name="actionLog_Network_Metadata">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Log Network Metadata</string>
+   </property>
+  </action>
+  <action name="actionShow_Console">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Show Console</string>
+   </property>
+  </action>
  </widget>
  <resources/>
  <connections/>
