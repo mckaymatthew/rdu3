@@ -9,7 +9,6 @@ CSRMap::CSRMap(QObject *parent) : QObject(parent)
 
 void CSRMap::readCSRFile()
 {
-
     QFile csv("csr.csv");
     auto openResult = csv.open(QFile::ReadOnly | QFile::Text);
     if(openResult) {

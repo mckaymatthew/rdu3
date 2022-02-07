@@ -8,6 +8,8 @@
 #include <QByteArray>
 #include <QTcpSocket>
 #include "simple.pb.h"
+#include "qMDNS.h"
+
 
 class RDUController : public QObject
 {
@@ -16,6 +18,9 @@ public:
     explicit RDUController(QObject *parent = nullptr);
 public slots:
     void readyRead();
+
+//    void connect();
+//    void disconnect();
 
     void writeWord(uint32_t addr, uint32_t data);
     void writeRequest(Request r);
@@ -28,6 +33,7 @@ signals:
     void gotAck();
     void logMessage(QString);
 private:
+    QList<QSharedPointer<QState>> m_states;
     QStateMachine machine;
     QTimer mdnsQueryTimeout;
     QHostInfo rduHost;
@@ -39,11 +45,9 @@ private:
     QByteArray msg_resp_buffer;
     int msg_resp_buffer_write = -1;
     int msg_resp_buffer_idx = 0;
+    qMDNS* m_mDNS;
 
     void setupStateMachine();
-
-    uint32_t CLK_GATE = 0xf0003000;
-    uint32_t CPU_RESET = 0xf0000800;
 };
 
 #endif // RDUCONTROLLER_H

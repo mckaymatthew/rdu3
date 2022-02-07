@@ -12,8 +12,8 @@ public:
         static CSRMap instance;
         return instance;
     }
-    uint32_t CLK_GATE = 0xf0003000;
-    uint32_t CPU_RESET = 0xf0000800;
+    uint32_t CLK_GATE = 0xf0002800;
+    uint32_t CPU_RESET = 0xf0000000;
     bool updated;
 private:
     explicit CSRMap(QObject *parent = nullptr);

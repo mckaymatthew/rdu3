@@ -1,7 +1,8 @@
 #include "rducontroller.h"
-#include <QSignalTransition>
+#include <QSignalTransition>ß
 #include "pb_encode.h"
 #include "pb_decode.h"
+#include "csrmap.h"
 
 RDUController::RDUController(QObject *parent)
     : QObject(parent)
@@ -15,6 +16,8 @@ RDUController::RDUController(QObject *parent)
     , msg_resp_buffer(' ',Response_size)
     , msg_resp_buffer_write(-1)
     , msg_resp_buffer_idx(0)
+    , m_mDNS(qMDNS::getInstance())
+
 {
 
     connect(&socket, &QTcpSocket::readyRead,this, &RDUController::readyRead);
@@ -34,6 +37,16 @@ void RDUController::setupStateMachine()
     QState *setupHostData = new QState();
     QState *enablePixelClock = new QState();
     QState *ping = new QState();
+
+//    m_states.append(QSharedPointer<QState>(errorRestart));
+//    m_states.append(QSharedPointer<QState>(queryMDNS));
+//    m_states.append(QSharedPointer<QState>(connectToRdu));
+//    m_states.append(QSharedPointer<QState>(connected));
+//    m_states.append(QSharedPointer<QState>(disablePixelClock));
+//    m_states.append(QSharedPointer<QState>(setupHostData));
+//    m_states.append(QSharedPointer<QState>(enablePixelClock));
+//    m_states.append(QSharedPointer<QState>(ping));
+
     machine.addState(errorRestart);
     machine.addState(queryMDNS);
     machine.addState(connectToRdu);
@@ -85,6 +98,8 @@ void RDUController::setupStateMachine()
 
     connect(queryMDNS, &QState::entered, [this](){
         emit logMessage("Query network for IC-7300 RDU");
+        m_mDNS->lookup("rdu_ic7300.local");
+
         this->mdnsQueryTimeout.setSingleShot(true);
         this->mdnsQueryTimeout.start(5000);
     });
@@ -99,7 +114,7 @@ void RDUController::setupStateMachine()
     });
     connect(connectedTransition, &QSignalTransition::triggered, [this](){
         emit logMessage("Connected.");
-//        periodicPing.start(1000);
+        periodicPing.start(1000);
     });
     connect(ping, &QState::entered, [this](){
 //        updateState("Ping Sent");
@@ -126,9 +141,9 @@ void RDUController::setupStateMachine()
 
     connect(disablePixelClock, &QState::entered, [this](){
         emit logMessage("LCD Clock Inhibit.");
-        writeWord(CLK_GATE,0);
+        writeWord(CSRMap::get().CLK_GATE,0);
         setupTimeout.setSingleShot(true);
-        setupTimeout.start(1000);
+        setupTimeout.start(5000);
     });
     connect(setupHostData, &QState::entered, [this](){
         emit logMessage("Setup RDU FPGA Buffers.");
@@ -136,13 +151,13 @@ void RDUController::setupStateMachine()
         r.which_payload = Request_setupSlots_tag;
         writeRequest(r);
         setupTimeout.setSingleShot(true);
-        setupTimeout.start(1000);
+        setupTimeout.start(5000);
     });
     connect(enablePixelClock, &QState::entered, [this](){
         emit logMessage("LCD Clock Enable.");
-        writeWord(CLK_GATE,1);
+        writeWord(CSRMap::get().CLK_GATE,1);
         setupTimeout.setSingleShot(true);
-        setupTimeout.start(1000);
+        setupTimeout.start(5000);
     });
 
 }

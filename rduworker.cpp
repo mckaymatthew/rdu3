@@ -9,12 +9,14 @@ RDUWorker::RDUWorker(QObject *parent)
     , m_bufferOne(BYTES_PER_FRAME,'\0')
     , m_bufferTwo(BYTES_PER_FRAME,'\0')
     , m_packetCount(0)
+    , m_oooPackets(0)
     , m_badPackets(0)
     , m_logFile(nullptr)
     , m_stream(nullptr)
     , m_logCsv(false)
     , m_framesStart()
     , m_writeBuffer(false)
+    , m_packetIdLast(0)
 {
 
 }
@@ -48,18 +50,10 @@ void RDUWorker::processPendingDatagrams()
         }
         auto pkt = datagram.data();
         auto header = pkt.data() + 2 ;
-        const uint32_t lineField = *((uint32_t*)header);
+        const uint16_t packetCtr = *((uint16_t*)header);
+        const uint16_t lineField = *((uint16_t*)header+1);
 //        const uint16_t* asRGB = (const uint16_t*)(pkt.data() + 6);
 
-        if(lineField > LINES) {
-            m_badPackets++;
-            continue;
-        }
-        static uint32_t maxFrame = 0;
-        if(maxFrame < lineField) {
-            qDebug() << "Hi " << lineField;
-            maxFrame = lineField;
-        }
         if(m_logCsv) {
             if(!m_stream) {
                 m_logFile = new QFile("log.csv",this);
@@ -67,13 +61,30 @@ void RDUWorker::processPendingDatagrams()
                 if(openRet) {
                     emit message(QString("Open Log CSV."));
                     m_stream = new QTextStream(m_logFile);
-                    *m_stream << "Packet,Time,LineNumber\n";
+                    *m_stream << "Packet,InternalCtr,Time,LineNumber\n";
                 }
             }
             if(m_stream) {
                 auto time = m_framesStart.nsecsElapsed();
-                *m_stream << QString("%1,%2,%3\n").arg(m_packetCount).arg(time).arg(lineField);
+                *m_stream << QString("%1,%4,%2,%3\n").arg(m_packetCount).arg(time).arg(lineField).arg(packetCtr);
             }
+        }
+
+        const bool oooPacket = packetCtr < m_packetIdLast;
+        m_packetIdLast = packetCtr;
+        if(oooPacket) {
+            m_oooPackets++;
+            continue;
+        }
+
+        if(lineField > LINES) {
+            m_badPackets++;
+            continue;
+        }
+        static uint32_t maxFrame = 0;
+        if(maxFrame < lineField) {
+//            qDebug() << "Hi " << lineField;
+            maxFrame = lineField;
         }
 
         uint32_t scanlineIdx = BYTES_PER_LINE * lineField;
@@ -91,7 +102,7 @@ void RDUWorker::processPendingDatagrams()
             emit newFrame();
         }
     }
-    emit newStats(m_packetCount,m_badPackets);
+    emit newStats(m_packetCount,m_badPackets, m_oooPackets);
 }
 
 QByteArray RDUWorker::getCopy()

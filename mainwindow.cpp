@@ -22,7 +22,8 @@ void MainWindow::connectPanelButton(QPushButton* but, RDUController* target, QSt
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
-    , m_worker()
+    , m_workerThread(nullptr)
+    , m_worker(nullptr)
     , m_controller()
 {
 
@@ -32,18 +33,20 @@ MainWindow::MainWindow(QWidget *parent)
         this->ui->statusMessages->append(QString("Updated CSR Mappings from file."));
         this->ui->statusMessages->append(QString("CLK GATE: 0x%1.").arg(CSRMap::get().CLK_GATE,8,16));
         this->ui->statusMessages->append(QString("CPU Reset: 0x%1.").arg(CSRMap::get().CPU_RESET,8,16));
-
     }
+    QThread::currentThread()->setObjectName("GUI Thread");
 
+    m_workerThread = new QThread();
+    m_worker = new RDUWorker(m_workerThread);
+//    m_worker->moveToThread(m_workerThread);
     connect(&m_controller, &RDUController::logMessage, [&](QString msg){this->ui->statusMessages->append(msg);});
-    connect(&m_worker, &RDUWorker::message, [&](QString msg){this->ui->statusMessages->append(msg);});
-    connect(&m_worker, &RDUWorker::newStats, this, &MainWindow::workerStats);
-    connect(&m_worker, &RDUWorker::newFrame, this, &MainWindow::workerFrame);
-    connect(this, &MainWindow::logCsv, &m_worker, &RDUWorker::logPacketData);
+    connect(m_worker, &RDUWorker::message, [&](QString msg){this->ui->statusMessages->append(msg);});
+    connect(m_worker, &RDUWorker::newStats, this, &MainWindow::workerStats);
+    connect(m_worker, &RDUWorker::newFrame, this, &MainWindow::workerFrame);
+    connect(this, &MainWindow::logCsv, m_worker, &RDUWorker::logPacketData);
 
-    m_worker.moveToThread(&m_workerThread);
-    m_workerThread.start();
-    QMetaObject::invokeMethod(&m_worker,&RDUWorker::startWorker);
+    m_workerThread->start();
+    QMetaObject::invokeMethod(m_worker,&RDUWorker::startWorker);
 
     QString message = QString("No Signal");
     QImage fb(COLUMNS,LINES,QImage::Format_RGB16);
@@ -74,21 +77,22 @@ MainWindow::~MainWindow()
 {
     m_controller.writeWord(CSRMap::get().CLK_GATE,0);
 
-    m_workerThread.quit();
-    m_workerThread.wait();
+    m_workerThread->quit();
+    m_workerThread->wait();
     delete ui;
 }
 
-void MainWindow::workerStats(uint32_t packets, uint32_t badPackets)
+void MainWindow::workerStats(uint32_t packets, uint32_t badPackets, uint32_t oooPackets)
 {
     this->ui->totalPackets->setText(QString("Packets: %1").arg(packets));
     this->ui->totalPacketsBad->setText(QString("Bad Packets: %1").arg(badPackets));
+    this->ui->totalOOO->setText(QString("OOO Packets: %1").arg(oooPackets));
 }
 
 
 void MainWindow::workerFrame()
 {
-    m_framebuffer = m_worker.getCopy();
+    m_framebuffer = m_worker->getCopy();
     QImage img((const uchar*) m_framebuffer.data(), COLUMNS, LINES, COLUMNS * sizeof(uint16_t),QImage::Format_RGB16);
     auto p = QPixmap::fromImage(img);
     int w = newWindow->width();

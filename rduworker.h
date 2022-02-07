@@ -18,7 +18,7 @@ public slots:
     void logPacketData(bool state);
 signals:
     void newFrame();
-    void newStats(uint32_t packetCount, uint32_t badPackets);
+    void newStats(uint32_t packetCount, uint32_t badPackets, uint32_t oooPackets);
     void message(QString);
 
 private slots:
@@ -29,6 +29,7 @@ private:
     QByteArray m_bufferTwo;
     uint32_t m_packetCount;
     uint32_t m_badPackets;
+    uint32_t m_oooPackets;
     uint32_t m_missingPackets;
 
     QFile* m_logFile;
@@ -41,6 +42,7 @@ private:
 
     QMutex m_copyMux;
 
+    uint16_t m_packetIdLast;
 };
 
 #endif // RDUWORKER_H

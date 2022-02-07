@@ -8,7 +8,6 @@
 #include <QFile>
 #include <QTextStream>
 #include <QHostInfo>
-#include <qMDNS.h>
 #include <QStateMachine>
 #include <QTimer>
 #include <QElapsedTimer>
@@ -36,7 +35,7 @@ public:
 signals:
     void logCsv(bool log);
 private slots:
-    void workerStats(uint32_t packets, uint32_t badPackets);
+    void workerStats(uint32_t packets, uint32_t badPackets, uint32_t oooPackets);
     void workerFrame();
 
     void on_clk_gate_enable_clicked();
@@ -55,8 +54,8 @@ private:
 
     Ui::MainWindow *ui;
 
-    QThread m_workerThread;
-    RDUWorker m_worker;
+    QThread* m_workerThread;
+    RDUWorker* m_worker;
     RDUController m_controller;
     QByteArray m_framebuffer;
 
