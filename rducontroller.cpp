@@ -29,14 +29,14 @@ RDUController::RDUController(QObject *parent)
 void RDUController::setupStateMachine()
 {
 
-    QState *errorRestart = new QState();
-    QState *queryMDNS = new QState();
-    QState *connectToRdu = new QState();
-    QState *connected = new QState();
-    QState *disablePixelClock = new QState();
-    QState *setupHostData = new QState();
-    QState *enablePixelClock = new QState();
-    QState *ping = new QState();
+    QState *s_errorRestart = new QState();
+    QState *s_queryMDNS = new QState();
+    QState *s_connectToRdu = new QState();
+    QState *s_connected = new QState();
+    QState *s_disablePixelClock = new QState();
+    QState *s_setupHostData = new QState();
+    QState *s_enablePixelClock = new QState();
+    QState *s_ping = new QState();
 
 //    m_states.append(QSharedPointer<QState>(errorRestart));
 //    m_states.append(QSharedPointer<QState>(queryMDNS));
@@ -47,119 +47,143 @@ void RDUController::setupStateMachine()
 //    m_states.append(QSharedPointer<QState>(enablePixelClock));
 //    m_states.append(QSharedPointer<QState>(ping));
 
-    machine.addState(errorRestart);
-    machine.addState(queryMDNS);
-    machine.addState(connectToRdu);
-    machine.addState(connected);
-    machine.addState(disablePixelClock);
-    machine.addState(setupHostData);
-    machine.addState(enablePixelClock);
+    machine.addState(s_errorRestart);
+    machine.addState(s_queryMDNS);
+    machine.addState(s_connectToRdu);
+    machine.addState(s_connected);
+    machine.addState(s_disablePixelClock);
+    machine.addState(s_setupHostData);
+    machine.addState(s_enablePixelClock);
 
-    machine.addState(ping);
-    machine.setInitialState(connectToRdu);
+    machine.addState(s_ping);
+    machine.setInitialState(s_connectToRdu);
 
 
 
     //Nominal program flow
-    errorRestart->addTransition(queryMDNS);
-    queryMDNS->addTransition(this,&RDUController::foundHost, connectToRdu);
-    auto connectedTransition = connectToRdu->addTransition(&socket,&QTcpSocket::connected, disablePixelClock);
-    disablePixelClock->addTransition(this,&RDUController::gotAck,setupHostData);
-    setupHostData->addTransition(this,&RDUController::gotAck,enablePixelClock);
-    enablePixelClock->addTransition(this,&RDUController::gotAck,connected);
-    connected->addTransition(&periodicPing,&QTimer::timeout, ping);
-    ping->addTransition(this,&RDUController::pingResponse, connected);
+    s_errorRestart->addTransition(s_queryMDNS);
+    s_queryMDNS->addTransition(this,&RDUController::foundHost, s_connectToRdu);
+    auto t_connectedTransition = s_connectToRdu->addTransition(&socket,&QTcpSocket::connected, s_disablePixelClock);
+    s_disablePixelClock->addTransition(this,&RDUController::gotAck,s_setupHostData);
+    s_setupHostData->addTransition(this,&RDUController::gotAck,s_enablePixelClock);
+    s_enablePixelClock->addTransition(this,&RDUController::gotAck,s_connected);
+    s_connected->addTransition(&periodicPing,&QTimer::timeout, s_ping);
+    s_ping->addTransition(this,&RDUController::pingResponse, s_connected);
 \
-    auto setupStates = {enablePixelClock, setupHostData, disablePixelClock};
+    auto setupStates = {s_enablePixelClock, s_setupHostData, s_disablePixelClock};
+    //Socket errors.
+    auto socketStates = {s_connectToRdu,s_connected,s_ping,s_disablePixelClock, s_setupHostData, s_enablePixelClock};
     for(auto state: setupStates) {
-        connect(state->addTransition(&setupTimeout, &QTimer::timeout,errorRestart), &QSignalTransition::triggered, [&]() {
-            emit logMessage("Time out during RDU setup.");
-        });
+        auto t_timeoutTransition = state->addTransition(&setupTimeout, &QTimer::timeout,s_errorRestart);
+        connect(t_timeoutTransition, &QSignalTransition::triggered, this, &RDUController::notifyTimeout);
     }
+    for(auto s: socketStates) {
+        //Todo: Are there other socket errors that can occur?
+        s->addTransition(&socket,&QTcpSocket::disconnected, s_errorRestart);
+    }
+
 
     //Timeout for operations
-    auto dnsTimeoutTransition = queryMDNS->addTransition(&mdnsQueryTimeout,&QTimer::timeout,queryMDNS);
-    auto pingTimeoutTransition = ping->addTransition(&pingTimeout,&QTimer::timeout,errorRestart);
+    auto t_connectTimeout = s_connectToRdu->addTransition(&connectTimeout,&QTimer::timeout, s_errorRestart);
+    auto t_mdnsTimeout = s_queryMDNS->addTransition(&mdnsQueryTimeout,&QTimer::timeout,s_queryMDNS);
+    auto t_pingTimeout = s_ping->addTransition(&pingTimeout,&QTimer::timeout,s_errorRestart);
+    connect(t_pingTimeout, &QSignalTransition::triggered, this, &RDUController::notifyPingTimeout);
+    connect(s_errorRestart, &QState::entered, this, &RDUController::notifySocketError);
 
+    connect(s_queryMDNS, &QState::entered, this, &RDUController::doQueryMdns);
+    connect(t_mdnsTimeout,&QSignalTransition::triggered, this, &RDUController::notifyMdnsTimeout);
+    connect(t_connectTimeout,&QSignalTransition::triggered, this, &RDUController::notifyConnectTimeout);
+    connect(s_connectToRdu, &QState::entered, this, &RDUController::doConnectToRdu);
+    connect(t_connectedTransition, &QSignalTransition::triggered, this, &RDUController::notifyConnected);
 
-    //Socket errors.
-    auto socketStates = {connectToRdu,connected,ping,disablePixelClock, setupHostData, enablePixelClock};
-    for(auto s: socketStates) {
-//        s->addTransition(&socket,SIGNAL(error(QAbstractSocket::SocketError)), errorRestart);
-        s->addTransition(&socket,&QTcpSocket::disconnected, errorRestart);
+    connect(s_ping, &QState::entered, this, &RDUController::doPing);
+
+    connect(s_disablePixelClock, &QState::entered, this, &RDUController::doClkInhibit);
+    connect(s_setupHostData, &QState::entered, this, &RDUController::doSetup);
+    connect(s_enablePixelClock, &QState::entered, this, &RDUController::doClkEnable);
+}
+void RDUController::notifySocketError() {
+    emit logMessage(QString("Error occured. Socket state: %1, errors: %2").arg(socket.state()).arg(socket.errorString()));
+    if(socket.isOpen()) {
+        socket.close();
     }
+    if(socket.state() != 0) {
+        socket.abort();
+    }
+    //emit logMessage(QString("Error occured. Socket state: %1, errors: %2").arg(socket.state()).arg(socket.errorString()));
 
-    connect(errorRestart, &QState::entered, [this](){
-        emit logMessage(QString("Error occured. Socket state: %1.").arg(socket.errorString()));
-        if(socket.isOpen()) {
-            socket.close();
-        }
-    });
+}
+void RDUController::notifyPingTimeout() {
+    emit logMessage("RDU did not respond to ping in time.");
+}
+void RDUController::notifyTimeout() {
+    emit logMessage("Failed to setup RDU configuration.");
+}
+void RDUController::doQueryMdns() {
+    emit logMessage("Query network for IC-7300 RDU...");
+    m_mDNS->lookup("rdu_ic7300.local");
+    this->mdnsQueryTimeout.setSingleShot(true);
+    this->mdnsQueryTimeout.start(5000);
+};
+void RDUController::notifyMdnsTimeout() {
+    emit logMessage("Failed to find IC7300 RDU on network");
+};
 
-    connect(queryMDNS, &QState::entered, [this](){
-        emit logMessage("Query network for IC-7300 RDU");
-        m_mDNS->lookup("rdu_ic7300.local");
+void RDUController::doConnectToRdu() {
+    //auto addr = rduHost.addresses().first();
+    QHostAddress addr = QHostAddress("10.0.0.128");
+    emit logMessage(QString("Found RDU at %1, connecting...").arg(addr.toString()));
+    socket.connectToHost(addr, 4242);
+    connectTimeout.start(1500);
+}
 
-        this->mdnsQueryTimeout.setSingleShot(true);
-        this->mdnsQueryTimeout.start(5000);
-    });
-    connect(dnsTimeoutTransition,&QSignalTransition::triggered, [this](){
-        emit logMessage("Lookup time out");
-    });
-    connect(connectToRdu, &QState::entered, [this](){
-//        auto addr = rduHost.addresses().first();
-        QHostAddress addr = QHostAddress("10.0.0.128");
-        emit logMessage("Connect to IC-7300 RDU...");
-        socket.connectToHost(addr, 4242);
-    });
-    connect(connectedTransition, &QSignalTransition::triggered, [this](){
-        emit logMessage("Connected.");
-        periodicPing.start(1000);
-    });
-    connect(ping, &QState::entered, [this](){
-//        updateState("Ping Sent");
-        Request r = Request_init_default;
-        r.which_payload = Request_ping_tag;
-        r.payload.ping.magic[0] = 0xFE;
-        r.payload.ping.magic[1] = 0xED;
-        r.payload.ping.magic[2] = 0xBE;
-        r.payload.ping.magic[3] = 0xEF;
+void RDUController::notifyConnectTimeout() {
+    emit logMessage("Failed to connect.");
+}
+void RDUController::notifyConnected() {
+    emit logMessage("Connected.");
+    periodicPing.start(1000);
+}
 
-        uint8_t buffer[Request_size];
+void RDUController::doClkInhibit() {
+    emit logMessage("LCD Clock Inhibit.");
+    writeWord(CSRMap::get().CLK_GATE,0);
+    setupTimeout.setSingleShot(true);
+    setupTimeout.start(5000);
+}
+void RDUController::doSetup() {
+    emit logMessage("Setup RDU FPGA Buffers.");
+    Request r = Request_init_default;
+    r.which_payload = Request_setupSlots_tag;
+    writeRequest(r);
+    setupTimeout.setSingleShot(true);
+    setupTimeout.start(5000);
+}
+void RDUController::doClkEnable() {
+    emit logMessage("LCD Clock Enable.");
+    writeWord(CSRMap::get().CLK_GATE,1);
+    setupTimeout.setSingleShot(true);
+    setupTimeout.start(5000);
+}
 
-        pb_ostream_t stream = pb_ostream_from_buffer(buffer, sizeof(buffer));
-        pb_encode(&stream, Request_fields, &r);
-        uint8_t message_length = stream.bytes_written;
-        socket.write((const char *)&message_length,1);
-        auto writeRet = socket.write((const char *)buffer,message_length);
-        pingTimeout.setSingleShot(true);
-        pingTimeout.start(5000);
-    });
-    connect(pingTimeoutTransition, &QSignalTransition::triggered, [this](){
-        emit logMessage("Lost connection or device unresponsive.");
-    });
+void RDUController::doPing() {
+    //updateState("Ping Sent");
+    Request r = Request_init_default;
+    r.which_payload = Request_ping_tag;
+    r.payload.ping.magic[0] = 0xFE;
+    r.payload.ping.magic[1] = 0xED;
+    r.payload.ping.magic[2] = 0xBE;
+    r.payload.ping.magic[3] = 0xEF;
 
-    connect(disablePixelClock, &QState::entered, [this](){
-        emit logMessage("LCD Clock Inhibit.");
-        writeWord(CSRMap::get().CLK_GATE,0);
-        setupTimeout.setSingleShot(true);
-        setupTimeout.start(5000);
-    });
-    connect(setupHostData, &QState::entered, [this](){
-        emit logMessage("Setup RDU FPGA Buffers.");
-        Request r = Request_init_default;
-        r.which_payload = Request_setupSlots_tag;
-        writeRequest(r);
-        setupTimeout.setSingleShot(true);
-        setupTimeout.start(5000);
-    });
-    connect(enablePixelClock, &QState::entered, [this](){
-        emit logMessage("LCD Clock Enable.");
-        writeWord(CSRMap::get().CLK_GATE,1);
-        setupTimeout.setSingleShot(true);
-        setupTimeout.start(5000);
-    });
+    uint8_t buffer[Request_size];
 
+    pb_ostream_t stream = pb_ostream_from_buffer(buffer, sizeof(buffer));
+    pb_encode(&stream, Request_fields, &r);
+    uint8_t message_length = stream.bytes_written;
+    socket.write((const char *)&message_length,1);
+    auto writeRet = socket.write((const char *)buffer,message_length);
+    pingTimeout.setSingleShot(true);
+    pingTimeout.start(5000);
 }
 
 void RDUController::readyRead() {

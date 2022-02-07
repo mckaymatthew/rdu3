@@ -19,13 +19,24 @@ public:
 public slots:
     void readyRead();
 
-//    void connect();
-//    void disconnect();
 
     void writeWord(uint32_t addr, uint32_t data);
     void writeRequest(Request r);
     void writeInject(QByteArray toInject);
     void writeInjectHex(QString toInjectHex);
+
+    void notifyTimeout();
+    void notifySocketError();
+    void notifyPingTimeout();
+    void doQueryMdns();
+    void notifyMdnsTimeout();
+    void doConnectToRdu();
+    void notifyConnectTimeout();
+    void notifyConnected();
+    void doPing();
+    void doClkInhibit();
+    void doSetup();
+    void doClkEnable();
 
 signals:
     void foundHost();
@@ -41,6 +52,7 @@ private:
     QTimer periodicPing;
     QTimer pingTimeout;
     QTimer setupTimeout;
+    QTimer connectTimeout;
 
     QByteArray msg_resp_buffer;
     int msg_resp_buffer_write = -1;
