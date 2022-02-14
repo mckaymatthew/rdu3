@@ -54,7 +54,7 @@ MainWindow::MainWindow(QWidget *parent)
     this->ui->actionShow_Console->setChecked(showConsole);
     this->on_actionShow_Console_toggled(showConsole);
 //    this->ui->groupBox_3->setVisible(showConsole);
-//    restoreGeometry(settings.value("mainWindow/geometry").toByteArray());
+    restoreGeometry(m_settings.value("mainWindow/geometry").toByteArray());
 
 }
 void MainWindow::drawError() {
@@ -74,7 +74,12 @@ void MainWindow::drawError(QString error){
     p.end();
     int w = this->ui->renderZone->width();
     int h = this->ui->renderZone->height();
-    this->ui->renderZone->setPixmap(QPixmap::fromImage(fb).scaled(w,h,Qt::KeepAspectRatio));
+//    qInfo() << QString("W: %1 H: %2").arg(w).arg(h);
+    auto i = QPixmap::fromImage(fb);
+    auto scaled = i.scaled(w,h,Qt::KeepAspectRatio);
+//    qInfo() <<  QString("W: %1 H: %2").arg(scaled.width()).arg(scaled.height());
+//    qInfo() << "";
+    this->ui->renderZone->setPixmap(scaled);
     this->ui->renderZone->setMinimumSize(COLUMNS, LINES);
 }
 MainWindow::~MainWindow()
@@ -88,9 +93,9 @@ MainWindow::~MainWindow()
 
 void MainWindow::workerStats(uint32_t packets, uint32_t badPackets, uint32_t oooPackets)
 {
-    this->ui->totalPackets->setText(QString("Packets: %1").arg(packets));
-    this->ui->totalPacketsBad->setText(QString("Bad Packets: %1").arg(badPackets));
-    this->ui->totalOOO->setText(QString("OOO Packets: %1").arg(oooPackets));
+//    this->ui->totalPackets->setText(QString("Packets: %1").arg(packets));
+//    this->ui->totalPacketsBad->setText(QString("Bad Packets: %1").arg(badPackets));
+//    this->ui->totalOOO->setText(QString("OOO Packets: %1").arg(oooPackets));
 }
 
 
@@ -101,21 +106,21 @@ void MainWindow::workerFrame()
     auto p = QPixmap::fromImage(img);
     int w = this->ui->renderZone->width();
     int h = this->ui->renderZone->height();
-    this->ui->renderZone->setPixmap(p.scaled(w,h,Qt::KeepAspectRatio));
+    auto s = p.scaled(w,h,Qt::KeepAspectRatio);
+    this->ui->renderZone->setPixmap(s);
 
 }
 
 void MainWindow::resizeEvent(QResizeEvent *event) {
-    drawError();
     QMainWindow::resizeEvent(event);
+    drawError();
 }
 void MainWindow::closeEvent(QCloseEvent *event)
 {
 
     QSettings settings("KE0PSL", "RDU3");
     qDebug() << "Close event" << settings.fileName();
-//    settings.setValue("mainWindow/geometry", saveGeometry());
-//    settings.setValue("newWindow/geometry", newWindow->saveGeometry());
+    settings.setValue("mainWindow/geometry", saveGeometry());
 
     m_controller.writeWord(CSRMap::get().CLK_GATE,0);
     QMainWindow::closeEvent(event);
@@ -182,13 +187,29 @@ void MainWindow::on_actionLog_Network_Metadata_toggled(bool arg1)
 void MainWindow::on_actionShow_Console_toggled(bool arg1)
 {
     m_settings.setValue("mainWindow/showConsole", arg1);
+    auto render = this->ui->renderZone->sizeHint();
+    auto window = this->sizeHint();
+    auto toHide = this->ui->statusMessages->maximumSize();
+    qInfo() << QString("Render : W: %1 H: %2").arg(render.width()).arg(render.height());
+    qInfo() << QString("Window : W: %1 H: %2").arg(window.width()).arg(window.height());
+    qInfo() << QString("Console: W: %1 H: %2").arg(toHide.width()).arg(toHide.height());
     if(!arg1) {
-        auto currentSize = size();
-        auto removeSize = this->ui->groupBox_3->size();
-        auto newHeight = currentSize.height() - removeSize.height();
-        this->resize(currentSize.width(), newHeight);
-    }
-    this->ui->groupBox_3->setVisible(arg1);
+    //    auto origMin = this->ui->renderZone->minimumSize();
+        window.setHeight(window.height() - toHide.height());
+//        window = render;
+        qInfo() << QString("Smaller: W: %1 H: %2").arg(window.width()).arg(window.height());
+        qInfo() << "";
+    } else {
+        window.setHeight(window.height() + toHide.height());
+        qInfo() << QString("Bigger : W: %1 H: %2").arg(window.width()).arg(window.height());
+        qInfo() << "";
 
+    }
+    this->ui->statusMessages->setVisible(arg1);
+    this->resize(window);
+    drawError();
+
+    //    this->ui->centralwidget->adjustSize();
+    //    this->adjustSize ();
 }
 

@@ -14,8 +14,10 @@ CONFIG += c++11
 SOURCES += \
     ../rdu_app/build/src/simple.pb.c \
     csrmap.cpp \
+    formtest.cpp \
     main.cpp \
     mainwindow.cpp \
+    mainwindow2.cpp \
     nanopb/pb_common.c \
     nanopb/pb_decode.c \
     nanopb/pb_encode.c \
@@ -44,7 +46,9 @@ HEADERS += \
     NoSignal.h \
     RDUConstants.h \
     csrmap.h \
+    formtest.h \
     mainwindow.h \
+    mainwindow2.h \
     nanopb/pb.h \
     nanopb/pb_common.h \
     nanopb/pb_decode.h \
@@ -82,7 +86,9 @@ HEADERS += \
     rduworker.h
 
 FORMS += \
+    formtest.ui \
     mainwindow.ui \
+    mainwindow2.ui \
     rduwindow.ui
 
 INCLUDEPATH += $$PWD/qMDNS/src/

@@ -65,5 +65,6 @@ private:
     RDUController m_controller;
     QByteArray m_framebuffer;
     QString m_errorLast;
+    bool inhibit{false};
 };
 #endif // MAINWINDOW_H

@@ -1,5 +1,5 @@
 #include "rducontroller.h"
-#include <QSignalTransition>ß
+#include <QSignalTransition>
 #include "pb_encode.h"
 #include "pb_decode.h"
 #include "csrmap.h"
@@ -56,10 +56,13 @@ void RDUController::setupStateMachine()
     machine.addState(s_enablePixelClock);
 
     machine.addState(s_ping);
-    machine.setInitialState(s_connectToRdu);
+    machine.setInitialState(s_queryMDNS);
 
-
-
+    auto reemitter = [&](const QHostInfo& info) {
+        this->rduHost = info;
+        emit this->foundHost();
+    };
+    connect(m_mDNS, &qMDNS::hostFound, reemitter);
     //Nominal program flow
     s_errorRestart->addTransition(s_queryMDNS);
     s_queryMDNS->addTransition(this,&RDUController::foundHost, s_connectToRdu);
