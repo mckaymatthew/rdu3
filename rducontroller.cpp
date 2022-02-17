@@ -19,16 +19,13 @@ RDUController::RDUController(QObject *parent)
     , m_mDNS(qMDNS::getInstance())
 
 {
-
     connect(&socket, &QTcpSocket::readyRead,this, &RDUController::readyRead);
     setupStateMachine();
-
     machine.start();
 }
 
 void RDUController::setupStateMachine()
 {
-
     QState *s_errorRestart = new QState();
     QState *s_queryMDNS = new QState();
     QState *s_connectToRdu = new QState();
@@ -36,16 +33,8 @@ void RDUController::setupStateMachine()
     QState *s_disablePixelClock = new QState();
     QState *s_setupHostData = new QState();
     QState *s_enablePixelClock = new QState();
+    QState *s_setFrameRate = new QState();
     QState *s_ping = new QState();
-
-//    m_states.append(QSharedPointer<QState>(errorRestart));
-//    m_states.append(QSharedPointer<QState>(queryMDNS));
-//    m_states.append(QSharedPointer<QState>(connectToRdu));
-//    m_states.append(QSharedPointer<QState>(connected));
-//    m_states.append(QSharedPointer<QState>(disablePixelClock));
-//    m_states.append(QSharedPointer<QState>(setupHostData));
-//    m_states.append(QSharedPointer<QState>(enablePixelClock));
-//    m_states.append(QSharedPointer<QState>(ping));
 
     machine.addState(s_errorRestart);
     machine.addState(s_queryMDNS);
@@ -56,7 +45,7 @@ void RDUController::setupStateMachine()
     machine.addState(s_enablePixelClock);
 
     machine.addState(s_ping);
-    machine.setInitialState(s_queryMDNS);
+    machine.setInitialState(s_connectToRdu);
 
     auto reemitter = [&](const QHostInfo& info) {
         this->rduHost = info;
@@ -70,13 +59,15 @@ void RDUController::setupStateMachine()
     s_disablePixelClock->addTransition(this,&RDUController::gotAck,s_setupHostData);
     s_setupHostData->addTransition(this,&RDUController::gotAck,s_enablePixelClock);
     s_enablePixelClock->addTransition(this,&RDUController::gotAck,s_connected);
+//    s_enablePixelClock->addTransition(this,&RDUController::gotAck,s_setFrameRate);
+//    s_setFrameRate->addTransition(this,&RDUController::gotAck,s_connected);
     s_connected->addTransition(&periodicPing,&QTimer::timeout, s_ping);
     s_ping->addTransition(this,&RDUController::pingResponse, s_connected);
-\
-    auto setupStates = {s_enablePixelClock, s_setupHostData, s_disablePixelClock};
-    auto socketStates = {s_connectToRdu,s_connected,s_ping,s_disablePixelClock, s_setupHostData, s_enablePixelClock};
+
+    auto setupStates = {s_enablePixelClock, s_setupHostData, s_disablePixelClock, s_setFrameRate};
+    auto socketStates = {s_connectToRdu, s_connected, s_ping, s_disablePixelClock, s_setFrameRate, s_setupHostData, s_enablePixelClock};
     auto notReadyStates = {s_errorRestart, s_queryMDNS,s_connectToRdu};
-    auto readyStates = {s_connected, s_disablePixelClock, s_setupHostData, s_enablePixelClock, s_ping};
+    auto readyStates = {s_connected, s_disablePixelClock, s_setupHostData, s_enablePixelClock, s_ping, s_setFrameRate};
     for(auto state: setupStates) {
         auto t_timeoutTransition = state->addTransition(&setupTimeout, &QTimer::timeout,s_errorRestart);
         connect(t_timeoutTransition, &QSignalTransition::triggered, this, &RDUController::notifyTimeout);
@@ -97,6 +88,8 @@ void RDUController::setupStateMachine()
     auto t_connectTimeout = s_connectToRdu->addTransition(&connectTimeout,&QTimer::timeout, s_errorRestart);
     auto t_mdnsTimeout = s_queryMDNS->addTransition(&mdnsQueryTimeout,&QTimer::timeout,s_queryMDNS);
     auto t_pingTimeout = s_ping->addTransition(&pingTimeout,&QTimer::timeout,s_errorRestart);
+    auto t_fpsTimeout = s_setFrameRate->addTransition(&fpsTimeout,&QTimer::timeout,s_errorRestart);
+    connect(t_fpsTimeout, &QSignalTransition::triggered, this, &RDUController::notifyFPSTimeout);
     connect(t_pingTimeout, &QSignalTransition::triggered, this, &RDUController::notifyPingTimeout);
     connect(s_errorRestart, &QState::entered, this, &RDUController::notifySocketError);
 
@@ -111,6 +104,7 @@ void RDUController::setupStateMachine()
     connect(s_disablePixelClock, &QState::entered, this, &RDUController::doClkInhibit);
     connect(s_setupHostData, &QState::entered, this, &RDUController::doSetup);
     connect(s_enablePixelClock, &QState::entered, this, &RDUController::doClkEnable);
+    connect(s_setFrameRate, &QState::entered, this, &RDUController::doSetFps);
 }
 void RDUController::notifySocketError() {
     emit logMessage(QString("Error occured. Socket state: %1, errors: %2").arg(socket.state()).arg(socket.errorString()));
@@ -122,6 +116,9 @@ void RDUController::notifySocketError() {
     }
     //emit logMessage(QString("Error occured. Socket state: %1, errors: %2").arg(socket.state()).arg(socket.errorString()));
 
+}
+void RDUController::notifyFPSTimeout(){
+    emit logMessage("RDU did not respond to Set FPS in time.");
 }
 void RDUController::notifyPingTimeout() {
     emit logMessage("RDU did not respond to ping in time.");
@@ -176,6 +173,12 @@ void RDUController::doClkEnable() {
     setupTimeout.setSingleShot(true);
     setupTimeout.start(5000);
 }
+void RDUController::doSetFps() {
+    emit logMessage(QString("Set FPS Divisor %1.").arg(divisor));
+    writeWord(CSRMap::get().FPS_DIVISOR,divisor);
+    fpsTimeout.setSingleShot(true);
+    fpsTimeout.start(5000);
+}
 
 void RDUController::doPing() {
     //updateState("Ping Sent");
@@ -201,37 +204,44 @@ void RDUController::readyRead() {
     auto data = socket.readAll();
     for(int i = 0; i < data.size(); i++) {
         if(msg_resp_buffer_write == -1) {
-                msg_resp_buffer_write = data[i];
+            msg_resp_buffer_write = data[i];
 //                this->ui->statusMessages->append(QString("Start of response size %1 bytes.").arg(msg_resp_buffer_write));
-            } else {
+        } else {
 //                qDebug() << QString("msg_resp_buffer.size()  %1, msg_resp_buffer_idx %2, data.size() %3, i %4").arg(msg_resp_buffer.size()).arg(msg_resp_buffer_idx).arg(data.size()).arg(i);
-                msg_resp_buffer[msg_resp_buffer_idx++] = data[i];
-                if(msg_resp_buffer_idx == msg_resp_buffer_write) {
+            msg_resp_buffer[msg_resp_buffer_idx++] = data[i];
+            if(msg_resp_buffer_idx == msg_resp_buffer_write) {
 //                    this->ui->statusMessages->append(QString("End of request size %1 bytes.").arg(msg_resp_buffer_write));
 
-                    Response msg_resp = Response_init_default;
-                    pb_istream_t stream = pb_istream_from_buffer((const pb_byte_t *)msg_resp_buffer.data(), msg_resp_buffer_write);
+                Response msg_resp = Response_init_default;
+                pb_istream_t stream = pb_istream_from_buffer((const pb_byte_t *)msg_resp_buffer.data(), msg_resp_buffer_write);
 
-                    msg_resp_buffer_write = -1;
-                    msg_resp_buffer_idx = 0;
-                    int status = pb_decode(&stream, Response_fields, &msg_resp);
+                msg_resp_buffer_write = -1;
+                msg_resp_buffer_idx = 0;
+                int status = pb_decode(&stream, Response_fields, &msg_resp);
 
-                    /* Check for errors... */
-                    if (!status)
-                    {
-                        emit logMessage(QString("Error occurred during decode: %1.").arg(PB_GET_ERROR(&stream)));
-                    } else {
-                        if(msg_resp.which_payload == Response_ping_tag) {
-                            emit pingResponse();
-                        }
-                        if(msg_resp.which_payload == Response_ack_tag) {
-                            emit gotAck();
-                        }
+                /* Check for errors... */
+                if (!status)
+                {
+                    emit logMessage(QString("Error occurred during decode: %1.").arg(PB_GET_ERROR(&stream)));
+                } else {
+                    if(msg_resp.which_payload == Response_ping_tag) {
+                        emit pingResponse();
+                    }
+                    if(msg_resp.which_payload == Response_ack_tag) {
+                        emit gotAck();
+                    }
+                    if(msg_resp.which_payload == Response_lrxd_tag) {
+                        QByteArray lrxd((char *)msg_resp.payload.lrxd.data.bytes, msg_resp.payload.lrxd.data.size);
+                        emit logMessage(QString("Got LRXD Bytes: %1 %2").arg(lrxd.size()).arg(lrxd.toHex()));
+                    }
+                    if(msg_resp.which_payload == Response_ltxd_tag) {
+                        QByteArray lrxd((char *)msg_resp.payload.ltxd.data.bytes, msg_resp.payload.ltxd.data.size);
+                        emit logMessage(QString("Got LTXD Bytes: %1 %2").arg(lrxd.size()).arg(lrxd.toHex()));
                     }
                 }
+            }
         }
     }
-
 }
 void RDUController::writeInjectHex(QString toInjectHex) {
     writeInject(QByteArray::fromHex(toInjectHex.toLatin1()));
@@ -248,12 +258,10 @@ void RDUController::writeInject(QByteArray toInject) {
         r.payload.inject.data.bytes[i] = toInject[i];
     }
     writeRequest(r);
-
 }
 void RDUController::writeRequest(Request r) {
     if(socket.isValid()) {
         uint8_t buffer[Request_size];
-
         pb_ostream_t stream = pb_ostream_from_buffer(buffer, sizeof(buffer));
         pb_encode(&stream, Request_fields, &r);
         uint8_t message_length = stream.bytes_written;
@@ -264,11 +272,15 @@ void RDUController::writeRequest(Request r) {
 
 }
 void RDUController::writeWord(uint32_t addr, uint32_t data) {
-
     Request r = Request_init_default;
     r.which_payload = Request_writeWord_tag;
     r.payload.writeWord.address = addr;
     r.payload.writeWord.data = data;
-
     writeRequest(r);
+}
+void RDUController::setFrameDivisor(uint8_t divisior) {
+    this->divisor = divisor;
+    if(socket.isValid()) {
+        writeWord(CSRMap::get().FPS_DIVISOR,divisor);
+    }
 }

@@ -79,16 +79,28 @@
      <x>0</x>
      <y>0</y>
      <width>480</width>
-     <height>24</height>
+     <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuButtons">
     <property name="title">
      <string>File</string>
     </property>
+    <widget class="QMenu" name="menuFramerate">
+     <property name="title">
+      <string>Framerate</string>
+     </property>
+     <addaction name="actionFPS_60"/>
+     <addaction name="actionFPS_30"/>
+     <addaction name="actionFPS_15"/>
+     <addaction name="actionFPS_10"/>
+     <addaction name="actionFPS_05"/>
+     <addaction name="actionFPS_01"/>
+    </widget>
     <addaction name="actionConnect"/>
     <addaction name="actionDisconnect"/>
     <addaction name="actionShow_Console"/>
+    <addaction name="menuFramerate"/>
    </widget>
    <widget class="QMenu" name="menuButtons_2">
     <property name="title">
@@ -176,6 +188,54 @@
   <action name="actionasdf">
    <property name="text">
     <string>asdf</string>
+   </property>
+  </action>
+  <action name="actionFPS_60">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>60FPS (170Mbps)</string>
+   </property>
+  </action>
+  <action name="actionFPS_30">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>30FPS</string>
+   </property>
+  </action>
+  <action name="actionFPS_15">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>15FPS</string>
+   </property>
+  </action>
+  <action name="actionFPS_10">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>10FPS</string>
+   </property>
+  </action>
+  <action name="actionFPS_05">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>5FPS</string>
+   </property>
+  </action>
+  <action name="actionFPS_01">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>1FPS</string>
    </property>
   </action>
  </widget>

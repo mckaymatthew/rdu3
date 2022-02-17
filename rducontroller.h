@@ -24,19 +24,23 @@ public slots:
     void writeRequest(Request r);
     void writeInject(QByteArray toInject);
     void writeInjectHex(QString toInjectHex);
+    void setFrameDivisor(uint8_t divisor);
 
     void notifyTimeout();
     void notifySocketError();
     void notifyPingTimeout();
-    void doQueryMdns();
+    void notifyFPSTimeout();
     void notifyMdnsTimeout();
-    void doConnectToRdu();
     void notifyConnectTimeout();
     void notifyConnected();
+
+    void doQueryMdns();
+    void doConnectToRdu();
     void doPing();
     void doClkInhibit();
     void doSetup();
     void doClkEnable();
+    void doSetFps();
 
 signals:
     void RDUReady();
@@ -57,11 +61,13 @@ private:
     QTimer pingTimeout;
     QTimer setupTimeout;
     QTimer connectTimeout;
+    QTimer fpsTimeout;
 
     QByteArray msg_resp_buffer;
     int msg_resp_buffer_write = -1;
     int msg_resp_buffer_idx = 0;
     qMDNS* m_mDNS;
+    uint8_t divisor = 0;
 
     void setupStateMachine();
 };

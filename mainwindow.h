@@ -47,7 +47,7 @@ private slots:
     void on_actionLog_Network_Metadata_toggled(bool arg1);
 
     void on_actionShow_Console_toggled(bool arg1);
-
+    void action_FPS_triggered(QAction *, bool);
 protected:
     void closeEvent(QCloseEvent *event) override;
     void resizeEvent(QResizeEvent *event) override;

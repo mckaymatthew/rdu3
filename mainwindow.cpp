@@ -9,6 +9,7 @@
 #include <QSettings>
 #include <QPainter>
 #include <QNetworkInterface>
+#include <QRegularExpression>
 #include "RDUConstants.h"
 
 using namespace Qt;
@@ -34,7 +35,6 @@ MainWindow::MainWindow(QWidget *parent)
 
     m_workerThread = new QThread();
     m_worker = new RDUWorker(m_workerThread);
-//    m_worker->moveToThread(m_workerThread);
     connect(&m_controller, &RDUController::logMessage, [&](QString msg){this->ui->statusMessages->append(msg);});
     connect(&m_controller, &RDUController::logMessageWithError, [&](QString msg, QString err){
         this->ui->statusMessages->append(msg);
@@ -49,6 +49,20 @@ MainWindow::MainWindow(QWidget *parent)
     m_workerThread->start();
     QMetaObject::invokeMethod(m_worker,&RDUWorker::startWorker);
     drawError("");
+
+
+
+    QList<QAction*> fpsActions = this->findChildren<QAction *>(QRegularExpression("actionFPS\\_(\\d+)"));
+    for(auto act: fpsActions) {
+        auto bound = std::bind(&MainWindow::action_FPS_triggered, this, act, std::placeholders::_1 );
+        connect(act, &QAction::triggered, this, bound);
+    }
+
+    auto selectedFps = m_settings.value("mainWindow/frameRate",this->ui->actionFPS_30->objectName());
+    auto toClick = this->findChild<QAction *>(selectedFps.toString());
+    if(toClick != nullptr) {
+        toClick->activate(QAction::ActionEvent::Trigger);
+    }
 
     bool showConsole = m_settings.value("mainWindow/showConsole",QVariant::fromValue(true)).toBool();
     this->ui->actionShow_Console->setChecked(showConsole);
@@ -211,5 +225,19 @@ void MainWindow::on_actionShow_Console_toggled(bool arg1)
 
     //    this->ui->centralwidget->adjustSize();
     //    this->adjustSize ();
+}
+void MainWindow::action_FPS_triggered(QAction* fps, bool) {
+    bool ok = false;
+    auto newFramerate = fps->objectName().right(2).toUInt(&ok);
+    auto divisor = (60/newFramerate);
+    updateState(QString("Framerate set to %1 FPS (divisor %2).").arg(newFramerate).arg(divisor));
+    m_settings.setValue("mainWindow/frameRate",fps->objectName());
+    m_controller.setFrameDivisor(divisor-1);
+    QList<QAction*> fpsActions = this->findChildren<QAction *>(QRegularExpression("actionFPS\\_(\\d+)"));
+    for(auto o : fpsActions) {
+        if(o != fps) {
+            o->setChecked(false);
+        }
+    }
 }
 
