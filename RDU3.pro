@@ -13,8 +13,10 @@ CONFIG += c++11
 
 SOURCES += \
     ../rdu_app/build/src/simple.pb.c \
+    clickablelabel.cpp \
     csrmap.cpp \
     formtest.cpp \
+    ltxddecoder.cpp \
     main.cpp \
     mainwindow.cpp \
     mainwindow2.cpp \
@@ -45,8 +47,10 @@ HEADERS += \
     ../rdu_app/build/src/simple.pb.h \
     NoSignal.h \
     RDUConstants.h \
+    clickablelabel.h \
     csrmap.h \
     formtest.h \
+    ltxddecoder.h \
     mainwindow.h \
     mainwindow2.h \
     nanopb/pb.h \

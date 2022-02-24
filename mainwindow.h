@@ -35,6 +35,11 @@ public:
     ~MainWindow();
 signals:
     void logCsv(bool log);
+public slots:
+    void updateState(QString note);
+
+    void injectTouch(QPoint l);
+    void injectTouchRelease();
 private slots:
     void workerStats(uint32_t packets, uint32_t badPackets, uint32_t oooPackets);
     void workerFrame();
@@ -48,12 +53,13 @@ private slots:
 
     void on_actionShow_Console_toggled(bool arg1);
     void action_FPS_triggered(QAction *, bool);
+    void on_actionSave_PNG_triggered();
+
 protected:
     void closeEvent(QCloseEvent *event) override;
     void resizeEvent(QResizeEvent *event) override;
 private:
     void clickPanelButton(QString onClick, QString onRelease, int delayMs);
-    void updateState(QString note);
     void connectPanelButton(QPushButton* but, RDUController* target, QString onClick, QString onRelease);
     void drawError();
     void drawError(QString error);
@@ -66,5 +72,6 @@ private:
     QByteArray m_framebuffer;
     QString m_errorLast;
     bool inhibit{false};
+    QTimer m_touchRearm;
 };
 #endif // MAINWINDOW_H

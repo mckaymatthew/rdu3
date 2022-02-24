@@ -11,6 +11,8 @@
 #include <QNetworkInterface>
 #include <QRegularExpression>
 #include "RDUConstants.h"
+#include <QDateTime>
+#include <QtEndian>
 
 using namespace Qt;
 using namespace std;
@@ -34,10 +36,12 @@ MainWindow::MainWindow(QWidget *parent)
     QThread::currentThread()->setObjectName("GUI Thread");
 
     m_workerThread = new QThread();
-    m_worker = new RDUWorker(m_workerThread);
-    connect(&m_controller, &RDUController::logMessage, [&](QString msg){this->ui->statusMessages->append(msg);});
+    m_worker = new RDUWorker();
+    m_worker->moveToThread(m_workerThread);
+//    m_worker = new RDUWorker(m_workerThread);
+    connect(&m_controller, &RDUController::logMessage, this, &MainWindow::updateState);
     connect(&m_controller, &RDUController::logMessageWithError, [&](QString msg, QString err){
-        this->ui->statusMessages->append(msg);
+        updateState(msg);
         this->drawError(err);
     });
 
@@ -64,11 +68,17 @@ MainWindow::MainWindow(QWidget *parent)
         toClick->activate(QAction::ActionEvent::Trigger);
     }
 
+    connect(this->ui->renderZone, &ClickableLabel::touch, this, &MainWindow::injectTouch);
+    connect(this->ui->renderZone, &ClickableLabel::release, this, &MainWindow::injectTouchRelease);
+
+
     bool showConsole = m_settings.value("mainWindow/showConsole",QVariant::fromValue(true)).toBool();
     this->ui->actionShow_Console->setChecked(showConsole);
     this->on_actionShow_Console_toggled(showConsole);
 //    this->ui->groupBox_3->setVisible(showConsole);
     restoreGeometry(m_settings.value("mainWindow/geometry").toByteArray());
+    m_touchRearm.start(30);
+
 
 }
 void MainWindow::drawError() {
@@ -90,7 +100,7 @@ void MainWindow::drawError(QString error){
     int h = this->ui->renderZone->height();
 //    qInfo() << QString("W: %1 H: %2").arg(w).arg(h);
     auto i = QPixmap::fromImage(fb);
-    auto scaled = i.scaled(w,h,Qt::KeepAspectRatio);
+    auto scaled = i.scaled(w,h,Qt::KeepAspectRatio, Qt::SmoothTransformation);
 //    qInfo() <<  QString("W: %1 H: %2").arg(scaled.width()).arg(scaled.height());
 //    qInfo() << "";
     this->ui->renderZone->setPixmap(scaled);
@@ -103,6 +113,7 @@ MainWindow::~MainWindow()
     m_workerThread->quit();
     m_workerThread->wait();
     delete ui;
+    ui = nullptr;
 }
 
 void MainWindow::workerStats(uint32_t packets, uint32_t badPackets, uint32_t oooPackets)
@@ -141,7 +152,6 @@ void MainWindow::closeEvent(QCloseEvent *event)
 }
 
 void MainWindow::updateState(QString note) {
-    //Can get called during destruction
     if(this->ui && this->ui->statusMessages) {
         this->ui->statusMessages->append(note);
     }
@@ -229,7 +239,7 @@ void MainWindow::on_actionShow_Console_toggled(bool arg1)
 void MainWindow::action_FPS_triggered(QAction* fps, bool) {
     bool ok = false;
     auto newFramerate = fps->objectName().right(2).toUInt(&ok);
-    auto divisor = (60/newFramerate);
+    uint8_t divisor = (60/newFramerate);
     updateState(QString("Framerate set to %1 FPS (divisor %2).").arg(newFramerate).arg(divisor));
     m_settings.setValue("mainWindow/frameRate",fps->objectName());
     m_controller.setFrameDivisor(divisor-1);
@@ -241,3 +251,51 @@ void MainWindow::action_FPS_triggered(QAction* fps, bool) {
     }
 }
 
+
+void MainWindow::on_actionSave_PNG_triggered()
+{
+    auto p = this->ui->renderZone->pixmap();
+    QDateTime time = QDateTime::currentDateTime();
+    QString filename = QString("%1.png").arg(time.toString("dd.MM.yyyy.hh.mm.ss.z"));
+    QFile file(filename);
+    file.open(QIODevice::WriteOnly);
+    p.save(&file, "PNG");
+    updateState(QString("Saved frame to %1.").arg(filename));
+}
+
+void MainWindow::injectTouch(QPoint l) {
+    if(l.x() < 0 || l.x() > 480) {
+        return;
+    }
+    if(l.y() < 0 || l.y() > 272) {
+        return;
+    }
+    if(m_touchRearm.remainingTime() != 0) {
+//        return;
+    }
+    quint16 x = qToBigEndian<quint16>(l.x());
+    quint16 y = qToBigEndian<quint16>(l.y());
+    QByteArray injectParameter = QByteArray::fromHex("fe1300");
+    injectParameter.append(quint8(x>>0));
+    injectParameter.append(quint8(x>>8));
+    injectParameter.append(quint8(y>>0));
+    injectParameter.append(quint8(y>>8));
+    injectParameter.append(QByteArray::fromHex("fd"));
+    updateState(QString("Inject touch to %1,%2. Hex: %3 ").arg(l.x()).arg(l.y()).arg(injectParameter.toHex()));
+    m_controller.writeInject(injectParameter);
+
+//    m_touchRearm.start(30);
+    {
+
+//        auto headerless = injectParameter.mid(1,6);
+//        uint16_t* payloadWord = (uint16_t*) headerless.data();
+//        uint16_t x2 = qFromBigEndian<uint16_t>(payloadWord[1]);
+//        uint16_t y2 = qFromBigEndian<uint16_t>(payloadWord[2]);
+//        updateState(QString("Decode is: X %1, Y %2").arg(x2).arg(272-y2));
+    }
+}
+void MainWindow::injectTouchRelease() {
+    QByteArray injectParameter = QByteArray::fromHex("fe1300270f270ffd");
+    updateState(QString("Touch Release: %1.").arg(injectParameter.toHex()));
+    m_controller.writeInject(injectParameter);
+}

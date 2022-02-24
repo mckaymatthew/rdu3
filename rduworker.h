@@ -24,7 +24,7 @@ signals:
 private slots:
     void processPendingDatagrams();
 private:
-    QUdpSocket m_incoming;
+    QUdpSocket* m_incoming;
     QByteArray m_bufferOne;
     QByteArray m_bufferTwo;
     uint32_t m_packetCount;

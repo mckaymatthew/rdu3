@@ -13,7 +13,7 @@ RDUController::RDUController(QObject *parent)
     , periodicPing()
     , pingTimeout()
     , setupTimeout()
-    , msg_resp_buffer(' ',Response_size)
+    , msg_resp_buffer(Response_size,'\0')
     , msg_resp_buffer_write(-1)
     , msg_resp_buffer_idx(0)
     , m_mDNS(qMDNS::getInstance())
@@ -105,6 +105,7 @@ void RDUController::setupStateMachine()
     connect(s_setupHostData, &QState::entered, this, &RDUController::doSetup);
     connect(s_enablePixelClock, &QState::entered, this, &RDUController::doClkEnable);
     connect(s_setFrameRate, &QState::entered, this, &RDUController::doSetFps);
+    connect(&m_ltxd_decoder, &LtxdDecoder::logMessage, [this](QString m) {emit this->logMessage(m);});
 }
 void RDUController::notifySocketError() {
     emit logMessage(QString("Error occured. Socket state: %1, errors: %2").arg(socket.state()).arg(socket.errorString()));
@@ -150,7 +151,7 @@ void RDUController::notifyConnectTimeout() {
 void RDUController::notifyConnected() {
     emit logMessage("Connected.");
     emit RDUReady();
-    periodicPing.start(1000);
+    periodicPing.start(5000);
 }
 
 void RDUController::doClkInhibit() {
@@ -207,7 +208,7 @@ void RDUController::readyRead() {
             msg_resp_buffer_write = data[i];
 //                this->ui->statusMessages->append(QString("Start of response size %1 bytes.").arg(msg_resp_buffer_write));
         } else {
-//                qDebug() << QString("msg_resp_buffer.size()  %1, msg_resp_buffer_idx %2, data.size() %3, i %4").arg(msg_resp_buffer.size()).arg(msg_resp_buffer_idx).arg(data.size()).arg(i);
+                qDebug() << QString("msg_resp_buffer.size()  %1 [Response_size %5], msg_resp_buffer_idx %2, data.size() %3, i %4").arg(msg_resp_buffer.size()).arg(msg_resp_buffer_idx).arg(data.size()).arg(i).arg(Response_size);
             msg_resp_buffer[msg_resp_buffer_idx++] = data[i];
             if(msg_resp_buffer_idx == msg_resp_buffer_write) {
 //                    this->ui->statusMessages->append(QString("End of request size %1 bytes.").arg(msg_resp_buffer_write));
@@ -235,8 +236,8 @@ void RDUController::readyRead() {
                         emit logMessage(QString("Got LRXD Bytes: %1 %2").arg(lrxd.size()).arg(lrxd.toHex()));
                     }
                     if(msg_resp.which_payload == Response_ltxd_tag) {
-                        QByteArray lrxd((char *)msg_resp.payload.ltxd.data.bytes, msg_resp.payload.ltxd.data.size);
-                        emit logMessage(QString("Got LTXD Bytes: %1 %2").arg(lrxd.size()).arg(lrxd.toHex()));
+                        QByteArray ltxd((char *)msg_resp.payload.ltxd.data.bytes, msg_resp.payload.ltxd.data.size);
+                        m_ltxd_decoder.newData(ltxd);
                     }
                 }
             }
@@ -276,11 +277,13 @@ void RDUController::writeWord(uint32_t addr, uint32_t data) {
     r.which_payload = Request_writeWord_tag;
     r.payload.writeWord.address = addr;
     r.payload.writeWord.data = data;
+
+    emit logMessage(QString("Write %1 to %2.").arg(addr,8,16).arg(data,8,16));
     writeRequest(r);
 }
-void RDUController::setFrameDivisor(uint8_t divisior) {
-    this->divisor = divisor;
+void RDUController::setFrameDivisor(uint8_t ndivisior) {
+    this->divisor = ndivisior;
     if(socket.isValid()) {
-        writeWord(CSRMap::get().FPS_DIVISOR,divisor);
+        writeWord(CSRMap::get().FPS_DIVISOR,ndivisior);
     }
 }

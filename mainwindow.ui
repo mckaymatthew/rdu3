@@ -34,7 +34,7 @@
      <number>0</number>
     </property>
     <item row="0" column="0">
-     <widget class="QLabel" name="renderZone">
+     <widget class="ClickableLabel" name="renderZone">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
         <horstretch>0</horstretch>
@@ -101,6 +101,7 @@
     <addaction name="actionDisconnect"/>
     <addaction name="actionShow_Console"/>
     <addaction name="menuFramerate"/>
+    <addaction name="actionSave_PNG"/>
    </widget>
    <widget class="QMenu" name="menuButtons_2">
     <property name="title">
@@ -195,7 +196,10 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>60FPS (170Mbps)</string>
+    <string>60FPS (130Mbps)</string>
+   </property>
+   <property name="toolTip">
+    <string>60FPS (130Mbps)</string>
    </property>
   </action>
   <action name="actionFPS_30">
@@ -203,7 +207,10 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>30FPS</string>
+    <string>30FPS (65Mbps)</string>
+   </property>
+   <property name="toolTip">
+    <string>30FPS (65Mbps)</string>
    </property>
   </action>
   <action name="actionFPS_15">
@@ -211,7 +218,10 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>15FPS</string>
+    <string>15FPS (32Mbps)</string>
+   </property>
+   <property name="toolTip">
+    <string>15FPS (32Mbps)</string>
    </property>
   </action>
   <action name="actionFPS_10">
@@ -219,7 +229,10 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>10FPS</string>
+    <string>10FPS (22Mbps)</string>
+   </property>
+   <property name="toolTip">
+    <string>10FPS (22Mbps)</string>
    </property>
   </action>
   <action name="actionFPS_05">
@@ -227,7 +240,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>5FPS</string>
+    <string>5FPS (11Mbps)</string>
    </property>
   </action>
   <action name="actionFPS_01">
@@ -235,10 +248,25 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>1FPS</string>
+    <string>1FPS (2.1Mbps)</string>
+   </property>
+   <property name="toolTip">
+    <string>1FPS (2.1Mbps)</string>
+   </property>
+  </action>
+  <action name="actionSave_PNG">
+   <property name="text">
+    <string>Save PNG</string>
    </property>
   </action>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>ClickableLabel</class>
+   <extends>QLabel</extends>
+   <header>clickablelabel.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

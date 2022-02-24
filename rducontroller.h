@@ -9,6 +9,7 @@
 #include <QTcpSocket>
 #include "simple.pb.h"
 #include "qMDNS.h"
+#include "LtxdDecoder.h"
 
 
 class RDUController : public QObject
@@ -24,7 +25,7 @@ public slots:
     void writeRequest(Request r);
     void writeInject(QByteArray toInject);
     void writeInjectHex(QString toInjectHex);
-    void setFrameDivisor(uint8_t divisor);
+    void setFrameDivisor(uint8_t ndivisor);
 
     void notifyTimeout();
     void notifySocketError();
@@ -53,7 +54,6 @@ signals:
     void logMessageWithError(QString, QString);
 private:
     QList<QSharedPointer<QState>> m_states;
-    QStateMachine machine;
     QTimer mdnsQueryTimeout;
     QHostInfo rduHost;
     QTcpSocket socket;
@@ -68,7 +68,10 @@ private:
     int msg_resp_buffer_idx = 0;
     qMDNS* m_mDNS;
     uint8_t divisor = 0;
+    LtxdDecoder m_ltxd_decoder;
 
+    //Ensure this is the first item destroyed.
+    QStateMachine machine;
     void setupStateMachine();
 };
 

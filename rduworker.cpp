@@ -5,7 +5,7 @@
 
 RDUWorker::RDUWorker(QObject *parent)
     : QObject(parent)
-    , m_incoming()
+    , m_incoming(nullptr)
     , m_bufferOne(BYTES_PER_FRAME,'\0')
     , m_bufferTwo(BYTES_PER_FRAME,'\0')
     , m_packetCount(0)
@@ -23,9 +23,10 @@ RDUWorker::RDUWorker(QObject *parent)
 
 void RDUWorker::startWorker()
 {
-    connect(&m_incoming, &QUdpSocket::readyRead, this, &RDUWorker::processPendingDatagrams);
+    m_incoming = new QUdpSocket();
+    connect(m_incoming, &QUdpSocket::readyRead, this, &RDUWorker::processPendingDatagrams);
     m_framesStart.start();
-    bool result = m_incoming.bind(QHostAddress::AnyIPv4, 1337);
+    bool result = m_incoming->bind(QHostAddress::AnyIPv4, 1337);
     if(!result) {
         emit message(QString("Failed to open port\nApp already open?"));
     } else {
@@ -40,19 +41,20 @@ void RDUWorker::logPacketData(bool state)
 
 void RDUWorker::processPendingDatagrams()
 {
-    while (m_incoming.hasPendingDatagrams()) {
+    QByteArray pkt;
+    pkt.resize(BYTES_PER_LINE + BYTES_PACKET_OVERHEAD);
+    while (m_incoming->hasPendingDatagrams()) {
+//        pkt.resize(m_incoming->pendingDatagramSize());
+        auto bytesRead = m_incoming->readDatagram(pkt.data(), pkt.size(),nullptr,nullptr);
         m_packetCount++;
-        QNetworkDatagram datagram = m_incoming.receiveDatagram();
-        const auto packetSize = datagram.data().size() ;
-        if(packetSize != (BYTES_PER_LINE + BYTES_PACKET_OVERHEAD)) {
+//        QNetworkDatagram datagram = m_incoming->receiveDatagram();
+        if(bytesRead != BYTES_PER_LINE + BYTES_PACKET_OVERHEAD) {
             m_badPackets++;
             continue;
         }
-        auto pkt = datagram.data();
         auto header = pkt.data() + 2 ;
         const uint16_t packetCtr = *((uint16_t*)header);
         const uint16_t lineField = *((uint16_t*)header+1);
-//        const uint16_t* asRGB = (const uint16_t*)(pkt.data() + 6);
 
         if(m_logCsv) {
             if(!m_stream) {
@@ -81,11 +83,6 @@ void RDUWorker::processPendingDatagrams()
             m_badPackets++;
             continue;
         }
-        static uint32_t maxFrame = 0;
-        if(maxFrame < lineField) {
-//            qDebug() << "Hi " << lineField;
-            maxFrame = lineField;
-        }
 
         uint32_t scanlineIdx = BYTES_PER_LINE * lineField;
         auto pixelData = pkt.right(BYTES_PER_LINE);
@@ -94,7 +91,7 @@ void RDUWorker::processPendingDatagrams()
         } else {
             m_bufferTwo.replace(scanlineIdx,BYTES_PER_LINE,pixelData);
         }
-        if(lineField == LINES) {
+        if(lineField == LINES-1) {
             {
                 QMutexLocker locker(&m_copyMux);
                 m_writeBuffer = !m_writeBuffer;
