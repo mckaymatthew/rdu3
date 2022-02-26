@@ -21,9 +21,11 @@ RDUController::RDUController(QObject *parent)
 {
     connect(&socket, &QTcpSocket::readyRead,this, &RDUController::readyRead);
     setupStateMachine();
-    machine.start();
 }
 
+void RDUController::startController() {
+    machine.start();
+}
 void RDUController::setupStateMachine()
 {
     QState *s_errorRestart = new QState();
@@ -41,6 +43,7 @@ void RDUController::setupStateMachine()
     machine.addState(s_connectToRdu);
     machine.addState(s_connected);
     machine.addState(s_disablePixelClock);
+    machine.addState(s_setFrameRate);
     machine.addState(s_setupHostData);
     machine.addState(s_enablePixelClock);
 
@@ -56,11 +59,11 @@ void RDUController::setupStateMachine()
     s_errorRestart->addTransition(s_queryMDNS);
     s_queryMDNS->addTransition(this,&RDUController::foundHost, s_connectToRdu);
     auto t_connectedTransition = s_connectToRdu->addTransition(&socket,&QTcpSocket::connected, s_disablePixelClock);
-    s_disablePixelClock->addTransition(this,&RDUController::gotAck,s_setupHostData);
+    s_disablePixelClock->addTransition(this,&RDUController::gotAck,s_setFrameRate);
+    s_setFrameRate->addTransition(this,&RDUController::gotAck,s_setupHostData);
     s_setupHostData->addTransition(this,&RDUController::gotAck,s_enablePixelClock);
     s_enablePixelClock->addTransition(this,&RDUController::gotAck,s_connected);
-//    s_enablePixelClock->addTransition(this,&RDUController::gotAck,s_setFrameRate);
-//    s_setFrameRate->addTransition(this,&RDUController::gotAck,s_connected);
+
     s_connected->addTransition(&periodicPing,&QTimer::timeout, s_ping);
     s_ping->addTransition(this,&RDUController::pingResponse, s_connected);
 
@@ -208,7 +211,7 @@ void RDUController::readyRead() {
             msg_resp_buffer_write = data[i];
 //                this->ui->statusMessages->append(QString("Start of response size %1 bytes.").arg(msg_resp_buffer_write));
         } else {
-                qDebug() << QString("msg_resp_buffer.size()  %1 [Response_size %5], msg_resp_buffer_idx %2, data.size() %3, i %4").arg(msg_resp_buffer.size()).arg(msg_resp_buffer_idx).arg(data.size()).arg(i).arg(Response_size);
+//                qDebug() << QString("msg_resp_buffer.size()  %1 [Response_size %5], msg_resp_buffer_idx %2, data.size() %3, i %4").arg(msg_resp_buffer.size()).arg(msg_resp_buffer_idx).arg(data.size()).arg(i).arg(Response_size);
             msg_resp_buffer[msg_resp_buffer_idx++] = data[i];
             if(msg_resp_buffer_idx == msg_resp_buffer_write) {
 //                    this->ui->statusMessages->append(QString("End of request size %1 bytes.").arg(msg_resp_buffer_write));
@@ -278,7 +281,7 @@ void RDUController::writeWord(uint32_t addr, uint32_t data) {
     r.payload.writeWord.address = addr;
     r.payload.writeWord.data = data;
 
-    emit logMessage(QString("Write %1 to %2.").arg(addr,8,16).arg(data,8,16));
+    emit logMessage(QString("Write 0x%1 to 0x%2.").arg(addr,8,16).arg(data,8,16));
     writeRequest(r);
 }
 void RDUController::setFrameDivisor(uint8_t ndivisior) {

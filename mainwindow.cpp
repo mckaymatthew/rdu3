@@ -80,6 +80,12 @@ MainWindow::MainWindow(QWidget *parent)
     m_touchRearm.start(30);
 
 
+    QString frameObj = m_settings.value("mainWindow/frameRate",QVariant("actionFPS_30")).toString();
+    QAction* fpsAction = this->findChild<QAction *>(frameObj);
+    if(fpsAction) {
+        fpsAction->setChecked(true);
+    }
+    m_controller.startController();
 }
 void MainWindow::drawError() {
     drawError(m_errorLast);
@@ -285,14 +291,6 @@ void MainWindow::injectTouch(QPoint l) {
     m_controller.writeInject(injectParameter);
 
 //    m_touchRearm.start(30);
-    {
-
-//        auto headerless = injectParameter.mid(1,6);
-//        uint16_t* payloadWord = (uint16_t*) headerless.data();
-//        uint16_t x2 = qFromBigEndian<uint16_t>(payloadWord[1]);
-//        uint16_t y2 = qFromBigEndian<uint16_t>(payloadWord[2]);
-//        updateState(QString("Decode is: X %1, Y %2").arg(x2).arg(272-y2));
-    }
 }
 void MainWindow::injectTouchRelease() {
     QByteArray injectParameter = QByteArray::fromHex("fe1300270f270ffd");

@@ -25,6 +25,7 @@ public slots:
     void writeRequest(Request r);
     void writeInject(QByteArray toInject);
     void writeInjectHex(QString toInjectHex);
+    void startController();
     void setFrameDivisor(uint8_t ndivisor);
 
     void notifyTimeout();
