@@ -86,6 +86,25 @@ MainWindow::MainWindow(QWidget *parent)
         fpsAction->setChecked(true);
     }
     m_controller.startController();
+
+
+    QList<QPushButton*> frontPanelButtons = this->findChildren<QPushButton *>(QRegularExpression("fpb\\_.+"));
+    for(auto b : frontPanelButtons) {
+        auto name = b->objectName();
+        auto parts = name.split("_");
+        if(parts.size() != 3 || parts[2].size() != 4) {
+            qInfo() << QString("Button '%1' is setup wrong").arg(name);
+        } else {
+            auto textLabel = parts[1];
+            auto enableStr = QString("fe%1fd").arg(parts[2]);
+            auto disableStr = QString("fe%1fd").arg(parts[2].replace(2,2,"00"));
+            auto bound_down = std::bind(&MainWindow::frontPanelButton_down, this, textLabel, QByteArray::fromHex(enableStr.toLatin1()));
+            auto bound_up = std::bind(&MainWindow::frontPanelButton_up, this, textLabel, QByteArray::fromHex(disableStr.toLatin1()));
+            connect(b, &QPushButton::pressed, bound_down);
+            connect(b, &QPushButton::released, bound_up);
+            qInfo() <<  QString("Button: %1, %2, %3, %4").arg(name).arg(textLabel).arg(enableStr).arg(disableStr);
+        }
+    }
 }
 void MainWindow::drawError() {
     drawError(m_errorLast);
@@ -216,6 +235,7 @@ void MainWindow::on_actionLog_Network_Metadata_toggled(bool arg1)
 
 void MainWindow::on_actionShow_Console_toggled(bool arg1)
 {
+    return;
     m_settings.setValue("mainWindow/showConsole", arg1);
     auto render = this->ui->renderZone->sizeHint();
     auto window = this->sizeHint();
@@ -296,4 +316,25 @@ void MainWindow::injectTouchRelease() {
     QByteArray injectParameter = QByteArray::fromHex("fe1300270f270ffd");
     updateState(QString("Touch Release: %1.").arg(injectParameter.toHex()));
     m_controller.writeInject(injectParameter);
+}
+
+void MainWindow::frontPanelButton_down(QString name, QByteArray d) {
+    m_controller.writeInject(d);
+    updateState(QString("Inject press front panel button: %1, %2.").arg(name).arg(d.toHex()));
+    m_buttonDown.start();
+
+}
+void MainWindow::frontPanelButton_up(QString name, QByteArray d) {
+    constexpr auto minTime = 50;
+    auto downTime = m_buttonDown.elapsed();
+    auto downLongEnough = downTime > minTime;
+    if(downLongEnough) {
+        m_controller.writeInject(d);
+        updateState(QString("Inject release front panel button: %1, %2.").arg(name).arg(d.toHex()));
+    } else {
+        auto delayTime = minTime - downTime;
+        qInfo() << QString("Defer up for %1 ms").arg(delayTime);
+        auto bound_up = std::bind(&MainWindow::frontPanelButton_up, this, name, d);
+        QTimer::singleShot(delayTime, bound_up);
+    }
 }

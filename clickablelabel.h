@@ -12,10 +12,12 @@ public:
 signals:
     void touch(QPoint l);
     void release();
+//    void wheely()
 protected:
     void mousePressEvent(QMouseEvent* event);
     void mouseMoveEvent(QMouseEvent* event);
     void mouseReleaseEvent(QMouseEvent* event);
+//    void wheelEvent(QWheelEvent *event);
 private:
     bool active = false;
 };

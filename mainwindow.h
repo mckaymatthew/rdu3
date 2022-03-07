@@ -54,6 +54,8 @@ private slots:
     void on_actionShow_Console_toggled(bool arg1);
     void action_FPS_triggered(QAction *, bool);
     void on_actionSave_PNG_triggered();
+    void frontPanelButton_down(QString name, QByteArray d);
+    void frontPanelButton_up(QString name, QByteArray d);
 
 protected:
     void closeEvent(QCloseEvent *event) override;
@@ -73,5 +75,6 @@ private:
     QString m_errorLast;
     bool inhibit{false};
     QTimer m_touchRearm;
+    QElapsedTimer m_buttonDown;
 };
 #endif // MAINWINDOW_H
