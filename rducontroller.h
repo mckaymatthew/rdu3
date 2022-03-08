@@ -26,6 +26,7 @@ public slots:
     void writeInject(QByteArray toInject);
     void writeInjectHex(QString toInjectHex);
     void startController();
+    void spinMainDial(int ticks);
     void setFrameDivisor(uint8_t ndivisor);
 
     void notifyTimeout();
@@ -70,6 +71,7 @@ private:
     qMDNS* m_mDNS;
     uint8_t divisor = 0;
     LtxdDecoder m_ltxd_decoder;
+    int m_dial_offset = 0;
 
     //Ensure this is the first item destroyed.
     QStateMachine machine;

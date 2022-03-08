@@ -3,6 +3,7 @@
 
 #include <QLabel>
 #include <QPoint>
+#include <QWheelEvent>
 
 class ClickableLabel : public QLabel
 {
@@ -12,12 +13,12 @@ public:
 signals:
     void touch(QPoint l);
     void release();
-//    void wheely()
+    void wheely(int clicks);
 protected:
     void mousePressEvent(QMouseEvent* event);
     void mouseMoveEvent(QMouseEvent* event);
     void mouseReleaseEvent(QMouseEvent* event);
-//    void wheelEvent(QWheelEvent *event);
+    void wheelEvent(QWheelEvent *event);
 private:
     bool active = false;
 };

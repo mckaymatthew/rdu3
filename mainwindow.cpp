@@ -16,7 +16,11 @@
 
 using namespace Qt;
 using namespace std;
-
+namespace {
+    template <typename T> int sgn(T val) {
+        return (T(0) < val) - (val < T(0));
+    }
+}
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
@@ -70,7 +74,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     connect(this->ui->renderZone, &ClickableLabel::touch, this, &MainWindow::injectTouch);
     connect(this->ui->renderZone, &ClickableLabel::release, this, &MainWindow::injectTouchRelease);
-
+    connect(this->ui->renderZone, &ClickableLabel::wheely, this, &MainWindow::tuneMainDial);
 
     bool showConsole = m_settings.value("mainWindow/showConsole",QVariant::fromValue(true)).toBool();
     this->ui->actionShow_Console->setChecked(showConsole);
@@ -337,4 +341,9 @@ void MainWindow::frontPanelButton_up(QString name, QByteArray d) {
         auto bound_up = std::bind(&MainWindow::frontPanelButton_up, this, name, d);
         QTimer::singleShot(delayTime, bound_up);
     }
+}
+
+void MainWindow::tuneMainDial(int x) {
+    updateState(QString("Spin main dial, request.").arg(x));
+    this->m_controller.spinMainDial(sgn(x));
 }

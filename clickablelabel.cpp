@@ -20,3 +20,8 @@ void ClickableLabel::mouseReleaseEvent(QMouseEvent* event) {
     active = false;
     emit release();
 }
+
+void ClickableLabel::wheelEvent(QWheelEvent *event) {
+    event->accept();
+    emit wheely(event->angleDelta().y());
+}

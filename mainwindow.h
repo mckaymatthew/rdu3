@@ -43,6 +43,7 @@ public slots:
 private slots:
     void workerStats(uint32_t packets, uint32_t badPackets, uint32_t oooPackets);
     void workerFrame();
+    void tuneMainDial(int x);
     void on_actionExit_FRONT_triggered();
     void on_actionMenu_triggered();
     void on_actionInhibit_Transmit_triggered();

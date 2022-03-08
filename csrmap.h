@@ -15,6 +15,7 @@ public:
     uint32_t CLK_GATE = 0xf0002800;
     uint32_t CPU_RESET = 0xf0000000;
     uint32_t FPS_DIVISOR = 0xf0002804;
+    uint32_t MAIN_DAIL_OFFSET = 0xf0003000;
     bool updated;
 private:
     explicit CSRMap(QObject *parent = nullptr);

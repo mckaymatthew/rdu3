@@ -290,3 +290,11 @@ void RDUController::setFrameDivisor(uint8_t ndivisior) {
         writeWord(CSRMap::get().FPS_DIVISOR,ndivisior);
     }
 }
+
+void RDUController::spinMainDial(int ticks) {
+    m_dial_offset = m_dial_offset + ticks;
+    if(socket.isValid()) {
+        writeWord(CSRMap::get().MAIN_DAIL_OFFSET,m_dial_offset);
+    }
+
+}
