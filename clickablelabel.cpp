@@ -1,19 +1,38 @@
 #include "clickablelabel.h"
 #include "QMouseEvent"
+#include "RDUConstants.h"
 
+namespace {
+    template <typename T> int sgn(T val) {
+        return (T(0) < val) - (val < T(0));
+    }
+}
 ClickableLabel::ClickableLabel(QWidget *parent, Qt::WindowFlags f)
     : QLabel(parent)
 {
-
+    constexpr int wheelyBuffer = 1000/60;
+    startTimer(wheelyBuffer);
 }
 
 void ClickableLabel::mousePressEvent(QMouseEvent* event) {
     active = true;
-    emit touch(event->pos());
+    auto initial = event->pos();
+    auto dstSize = this->size();
+    double yScale = (double)LINES / dstSize.height();
+    double xScale = (double)COLUMNS / dstSize.width();
+    initial.rx() *= xScale;
+    initial.ry() *= yScale;
+    emit touch(initial);
 }
 void ClickableLabel::mouseMoveEvent(QMouseEvent* event) {
     if(active) {
-        emit touch(event->pos());
+        auto initial = event->pos();
+        auto dstSize = this->size();
+        double yScale = (double)LINES / dstSize.width();
+        double xScale = (double)COLUMNS / dstSize.width();
+        initial.rx() *= xScale;
+        initial.ry() *= yScale;
+        emit touch(initial);
     }
 }
 void ClickableLabel::mouseReleaseEvent(QMouseEvent* event) {
@@ -23,5 +42,19 @@ void ClickableLabel::mouseReleaseEvent(QMouseEvent* event) {
 
 void ClickableLabel::wheelEvent(QWheelEvent *event) {
     event->accept();
-    emit wheely(event->angleDelta().y());
+    QPoint numPixels = event->pixelDelta();
+    QPoint numDegrees = event->angleDelta();
+
+    if (!numPixels.isNull()) {
+        accumulatedWheelies = accumulatedWheelies + sgn(numPixels.y());
+    } else if (!numDegrees.isNull()) {
+        accumulatedWheelies = accumulatedWheelies + sgn(numDegrees.y());
+    }
+}
+
+void ClickableLabel::timerEvent(QTimerEvent *event) {
+    if(accumulatedWheelies != 0) {
+        emit wheely(accumulatedWheelies);
+        accumulatedWheelies = 0;
+    }
 }

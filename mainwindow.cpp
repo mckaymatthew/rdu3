@@ -16,11 +16,6 @@
 
 using namespace Qt;
 using namespace std;
-namespace {
-    template <typename T> int sgn(T val) {
-        return (T(0) < val) - (val < T(0));
-    }
-}
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
@@ -344,6 +339,6 @@ void MainWindow::frontPanelButton_up(QString name, QByteArray d) {
 }
 
 void MainWindow::tuneMainDial(int x) {
-    updateState(QString("Spin main dial, request.").arg(x));
-    this->m_controller.spinMainDial(sgn(x));
+    updateState(QString("Spin main dial, request %1.").arg(x));
+    this->m_controller.spinMainDial(x);
 }
