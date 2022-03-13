@@ -38,6 +38,7 @@ MainWindow::MainWindow(QWidget *parent)
     m_worker = new RDUWorker();
     m_worker->moveToThread(m_workerThread);
 //    m_worker = new RDUWorker(m_workerThread);
+    connect(&m_controller, &RDUController::notifyUserOfState, [this](QString msg){this->ui->stateLabel->setText(msg);});
     connect(&m_controller, &RDUController::logMessage, this, &MainWindow::updateState);
     connect(&m_controller, &RDUController::logMessageWithError, [&](QString msg, QString err){
         updateState(msg);
@@ -70,12 +71,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(this->ui->renderZone, &ClickableLabel::touch, this, &MainWindow::injectTouch);
     connect(this->ui->renderZone, &ClickableLabel::release, this, &MainWindow::injectTouchRelease);
     connect(this->ui->renderZone, &ClickableLabel::wheely, this, &MainWindow::tuneMainDial);
-
-    bool showConsole = m_settings.value("mainWindow/showConsole",QVariant::fromValue(true)).toBool();
-    this->ui->actionShow_Console->setChecked(showConsole);
-    this->on_actionShow_Console_toggled(showConsole);
-//    this->ui->groupBox_3->setVisible(showConsole);
-    restoreGeometry(m_settings.value("mainWindow/geometry").toByteArray());
+//    restoreGeometry(m_settings.value("mainWindow/geometry").toByteArray());
     m_touchRearm.start(30);
 
 
@@ -157,12 +153,13 @@ void MainWindow::workerFrame()
     int h = this->ui->renderZone->height();
     auto s = p.scaled(w,h,Qt::KeepAspectRatio);
     this->ui->renderZone->setPixmap(s);
+//    this->ui->renderZone->setMinimumSize(1,1);
 
 }
 
 void MainWindow::resizeEvent(QResizeEvent *event) {
     QMainWindow::resizeEvent(event);
-    drawError();
+//    drawError();
 }
 void MainWindow::closeEvent(QCloseEvent *event)
 {
@@ -181,46 +178,30 @@ void MainWindow::updateState(QString note) {
     }
 }
 
-
-void MainWindow::clickPanelButton(QString onClick, QString onRelease, int delayMs) {
-    m_controller.writeInjectHex(onClick);
-    QTimer::singleShot(delayMs, [this, onRelease]() {
-        this->m_controller.writeInjectHex(onRelease);
-    });
-}
-
-void MainWindow::on_actionExit_FRONT_triggered()
-{
-    updateState("Pressing Exit button.");
-    clickPanelButton("FE0E10FD","FE0E00FD", 100);
-}
-
-void MainWindow::on_actionMenu_triggered()
-{
-    updateState("Pressing Menu button.");
-    clickPanelButton("FE0D08FD","FE0D00FD", 100);
-}
-
 void MainWindow::on_actionInhibit_Transmit_triggered()
 {
+    this->ui->lastActionLabel->setText(QString("Debug Clk Inhibit"));
     updateState("Debug: Inhibit Tx.");
     m_controller.writeWord(CSRMap::get().CLK_GATE,0);
 }
 
 void MainWindow::on_actionEnable_Transmit_triggered()
 {
+    this->ui->lastActionLabel->setText(QString("Debug Clk Enable"));
     updateState("Debug: Enable Tx.");
     m_controller.writeWord(CSRMap::get().CLK_GATE,1);
 }
 
 void MainWindow::on_actionResetSOC_triggered()
 {
+    this->ui->lastActionLabel->setText(QString("Rest CPU"));
     updateState("Debug: Rest SOC.");
     m_controller.writeWord(CSRMap::get().CPU_RESET,1);
 }
 
 void MainWindow::on_actionHaltSOC_triggered()
 {
+    this->ui->lastActionLabel->setText(QString("Halt CPU"));
     updateState("Debug: Halt SOC.");
     m_controller.writeWord(CSRMap::get().CPU_RESET+1,9); //unaligned write causes CPU to fault
 }
@@ -232,38 +213,10 @@ void MainWindow::on_actionLog_Network_Metadata_toggled(bool arg1)
 }
 
 
-void MainWindow::on_actionShow_Console_toggled(bool arg1)
-{
-    return;
-    m_settings.setValue("mainWindow/showConsole", arg1);
-    auto render = this->ui->renderZone->sizeHint();
-    auto window = this->sizeHint();
-    auto toHide = this->ui->statusMessages->maximumSize();
-    qInfo() << QString("Render : W: %1 H: %2").arg(render.width()).arg(render.height());
-    qInfo() << QString("Window : W: %1 H: %2").arg(window.width()).arg(window.height());
-    qInfo() << QString("Console: W: %1 H: %2").arg(toHide.width()).arg(toHide.height());
-    if(!arg1) {
-    //    auto origMin = this->ui->renderZone->minimumSize();
-        window.setHeight(window.height() - toHide.height());
-//        window = render;
-        qInfo() << QString("Smaller: W: %1 H: %2").arg(window.width()).arg(window.height());
-        qInfo() << "";
-    } else {
-        window.setHeight(window.height() + toHide.height());
-        qInfo() << QString("Bigger : W: %1 H: %2").arg(window.width()).arg(window.height());
-        qInfo() << "";
-
-    }
-    this->ui->statusMessages->setVisible(arg1);
-    this->resize(window);
-    drawError();
-
-    //    this->ui->centralwidget->adjustSize();
-    //    this->adjustSize ();
-}
 void MainWindow::action_FPS_triggered(QAction* fps, bool) {
     bool ok = false;
     auto newFramerate = fps->objectName().right(2).toUInt(&ok);
+    this->ui->lastActionLabel->setText(QString("Set FPS %1").arg(newFramerate));
     uint8_t divisor = (60/newFramerate);
     updateState(QString("Framerate set to %1 FPS (divisor %2).").arg(newFramerate).arg(divisor));
     m_settings.setValue("mainWindow/frameRate",fps->objectName());
@@ -282,6 +235,7 @@ void MainWindow::on_actionSave_PNG_triggered()
     auto p = this->ui->renderZone->pixmap();
     QDateTime time = QDateTime::currentDateTime();
     QString filename = QString("%1.png").arg(time.toString("dd.MM.yyyy.hh.mm.ss.z"));
+    this->ui->lastActionLabel->setText(QString("Save PNG %1").arg(filename));
     QFile file(filename);
     file.open(QIODevice::WriteOnly);
     p.save(&file, "PNG");
@@ -298,6 +252,7 @@ void MainWindow::injectTouch(QPoint l) {
     if(m_touchRearm.remainingTime() != 0) {
 //        return;
     }
+    this->ui->lastActionLabel->setText(QString("Touch Point: %1,%2").arg(l.x()).arg(l.y()));
     quint16 x = qToBigEndian<quint16>(l.x());
     quint16 y = qToBigEndian<quint16>(l.y());
     QByteArray injectParameter = QByteArray::fromHex("fe1300");
@@ -312,18 +267,21 @@ void MainWindow::injectTouch(QPoint l) {
 //    m_touchRearm.start(30);
 }
 void MainWindow::injectTouchRelease() {
+    this->ui->lastActionLabel->setText(QString("Touch Release"));
     QByteArray injectParameter = QByteArray::fromHex("fe1300270f270ffd");
     updateState(QString("Touch Release: %1.").arg(injectParameter.toHex()));
     m_controller.writeInject(injectParameter);
 }
 
 void MainWindow::frontPanelButton_down(QString name, QByteArray d) {
+    this->ui->lastActionLabel->setText(QString("Button Press: %1").arg(name));
     m_controller.writeInject(d);
     updateState(QString("Inject press front panel button: %1, %2.").arg(name).arg(d.toHex()));
     m_buttonDown.start();
 
 }
 void MainWindow::frontPanelButton_up(QString name, QByteArray d) {
+    this->ui->lastActionLabel->setText(QString("Button Release: %1").arg(name));
     constexpr auto minTime = 50;
     auto downTime = m_buttonDown.elapsed();
     auto downLongEnough = downTime > minTime;
@@ -339,6 +297,7 @@ void MainWindow::frontPanelButton_up(QString name, QByteArray d) {
 }
 
 void MainWindow::tuneMainDial(int x) {
+    this->ui->lastActionLabel->setText(QString("Dial %1").arg(x));
     updateState(QString("Spin main dial, request %1.").arg(x));
     this->m_controller.spinMainDial(x);
 }

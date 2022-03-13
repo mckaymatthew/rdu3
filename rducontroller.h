@@ -8,8 +8,9 @@
 #include <QByteArray>
 #include <QTcpSocket>
 #include "simple.pb.h"
-#include "qMDNS.h"
 #include "LtxdDecoder.h"
+#include <qmdnsengine/server.h>
+#include <qmdnsengine/resolver.h>
 
 
 class RDUController : public QObject
@@ -52,6 +53,7 @@ signals:
     void foundHost();
     void pingResponse();
     void gotAck();
+    void notifyUserOfState(QString);
     void logMessage(QString);
     void logMessageWithError(QString, QString);
 private:
@@ -68,7 +70,6 @@ private:
     QByteArray msg_resp_buffer;
     int msg_resp_buffer_write = -1;
     int msg_resp_buffer_idx = 0;
-    qMDNS* m_mDNS;
     uint8_t divisor = 0;
     LtxdDecoder m_ltxd_decoder;
     int m_dial_offset = 0;
@@ -76,6 +77,10 @@ private:
     //Ensure this is the first item destroyed.
     QStateMachine machine;
     void setupStateMachine();
+
+    QMdnsEngine::Server mServer;
+    QMdnsEngine::Resolver *mResolver = nullptr;
+    QHostAddress m_addrAlt;
 };
 
 #endif // RDUCONTROLLER_H

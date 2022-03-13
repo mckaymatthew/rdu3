@@ -44,15 +44,12 @@ private slots:
     void workerStats(uint32_t packets, uint32_t badPackets, uint32_t oooPackets);
     void workerFrame();
     void tuneMainDial(int x);
-    void on_actionExit_FRONT_triggered();
-    void on_actionMenu_triggered();
     void on_actionInhibit_Transmit_triggered();
     void on_actionEnable_Transmit_triggered();
     void on_actionResetSOC_triggered();
     void on_actionHaltSOC_triggered();
     void on_actionLog_Network_Metadata_toggled(bool arg1);
 
-    void on_actionShow_Console_toggled(bool arg1);
     void action_FPS_triggered(QAction *, bool);
     void on_actionSave_PNG_triggered();
     void frontPanelButton_down(QString name, QByteArray d);
@@ -62,7 +59,6 @@ protected:
     void closeEvent(QCloseEvent *event) override;
     void resizeEvent(QResizeEvent *event) override;
 private:
-    void clickPanelButton(QString onClick, QString onRelease, int delayMs);
     void connectPanelButton(QPushButton* but, RDUController* target, QString onClick, QString onRelease);
     void drawError();
     void drawError(QString error);
