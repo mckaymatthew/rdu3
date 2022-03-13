@@ -54,8 +54,6 @@ signals:
     void pingResponse();
     void gotAck();
     void notifyUserOfState(QString);
-    void logMessage(QString);
-    void logMessageWithError(QString, QString);
 private:
     QList<QSharedPointer<QState>> m_states;
     QTimer mdnsQueryTimeout;

@@ -102,37 +102,36 @@ void RDUController::setupStateMachine()
     connect(s_setupHostData, &QState::entered, this, &RDUController::doSetup);
     connect(s_enablePixelClock, &QState::entered, this, &RDUController::doClkEnable);
     connect(s_setFrameRate, &QState::entered, this, &RDUController::doSetFps);
-    connect(&m_ltxd_decoder, &LtxdDecoder::logMessage, [this](QString m) {emit this->logMessage(m);});
 
 
 }
 void RDUController::notifySocketError() {
     emit notifyUserOfState(QString("Error"));
-    emit logMessage(QString("Error occured. Socket state: %1, errors: %2").arg(socket.state()).arg(socket.errorString()));
+    qInfo() << (QString("Error occured. Socket state: %1, errors: %2").arg(socket.state()).arg(socket.errorString()));
     if(socket.isOpen()) {
         socket.close();
     }
     if(socket.state() != 0) {
         socket.abort();
     }
-    //emit logMessage(QString("Error occured. Socket state: %1, errors: %2").arg(socket.state()).arg(socket.errorString()));
+    //qInfo() << (QString("Error occured. Socket state: %1, errors: %2").arg(socket.state()).arg(socket.errorString()));
 
 }
 void RDUController::notifyFPSTimeout(){
-    emit notifyUserOfState(QString("Timeout"));
-    emit logMessage("RDU did not respond to Set FPS in time.");
+    emit notifyUserOfState(QString("Timeout Set FPS"));
+    qInfo() << ("RDU did not respond to Set FPS in time.");
 }
 void RDUController::notifyPingTimeout() {
-    emit notifyUserOfState(QString("Timeout"));
-    emit logMessage("RDU did not respond to ping in time.");
+    emit notifyUserOfState(QString("Timeout Ping"));
+    qInfo() << ("RDU did not respond to ping in time.");
 }
 void RDUController::notifyTimeout() {
-    emit notifyUserOfState(QString("Timeout"));
-    emit logMessage("Failed to setup RDU configuration.");
+    emit notifyUserOfState(QString("Timeout Configure"));
+    qInfo() << ("Failed to setup RDU configuration.");
 }
 void RDUController::doQueryMdns() {
-    emit notifyUserOfState(QString("Find..."));
-    emit logMessageWithError("Query network for IC-7300 RDU...","Find RDU...");
+    emit notifyUserOfState(QString("Query mDNS for IC7300"));
+    qInfo() << ("Query network for IC-7300 RDU...");
 //    m_mDNS->lookup("rdu_ic7300.local");
     if(mResolver != nullptr) {
         delete mResolver;
@@ -146,41 +145,41 @@ void RDUController::doQueryMdns() {
     this->mdnsQueryTimeout.start(5000);
 };
 void RDUController::notifyMdnsTimeout() {
-    emit notifyUserOfState(QString("Timeout"));
-    emit logMessage("Failed to find IC7300 RDU on network");
+    emit notifyUserOfState(QString("Query mDNS Timeout"));
+    qInfo() << ("Failed to find IC7300 RDU on network");
 };
 
 void RDUController::doConnectToRdu() {
-    emit notifyUserOfState(QString("Connect"));
+    emit notifyUserOfState(QString("Located IC7300, Connecting"));
 //    auto addr = rduHost.addresses().first();
 
 //    QHostAddress addr = QHostAddress("10.0.0.128");
-    emit logMessageWithError(QString("Found RDU at %1, connecting...").arg(m_addrAlt.toString()),"Connecting");
+    qInfo() << (QString("Found RDU at %1, connecting...").arg(m_addrAlt.toString()));
     socket.connectToHost(m_addrAlt, 4242);
     connectTimeout.start(1500);
 }
 
 void RDUController::notifyConnectTimeout() {
-    emit notifyUserOfState(QString("Timeout"));
-    emit logMessage("Failed to connect.");
+    emit notifyUserOfState(QString("Timeout Connect"));
+    qInfo() << ("Failed to connect.");
 }
 void RDUController::notifyConnected() {
     emit notifyUserOfState(QString("Connected"));
-    emit logMessage("Connected.");
+    qInfo() << ("Connected.");
     emit RDUReady();
     periodicPing.start(5000);
 }
 
 void RDUController::doClkInhibit() {
     emit notifyUserOfState(QString("Setup Clk"));
-    emit logMessage("LCD Clock Inhibit.");
+    qInfo() << ("LCD Clock Inhibit.");
     writeWord(CSRMap::get().CLK_GATE,0);
     setupTimeout.setSingleShot(true);
     setupTimeout.start(5000);
 }
 void RDUController::doSetup() {
     emit notifyUserOfState(QString("Setup IP"));
-    emit logMessage("Setup RDU FPGA Buffers.");
+    qInfo() << ("Setup RDU FPGA Buffers.");
     Request r = Request_init_default;
     r.which_payload = Request_setupSlots_tag;
     writeRequest(r);
@@ -189,14 +188,15 @@ void RDUController::doSetup() {
 }
 void RDUController::doClkEnable() {
     emit notifyUserOfState(QString("Setup En"));
-    emit logMessage("LCD Clock Enable.");
+    qInfo() << ("LCD Clock Enable.");
     writeWord(CSRMap::get().CLK_GATE,1);
     setupTimeout.setSingleShot(true);
     setupTimeout.start(5000);
+    emit notifyUserOfState(QString("Connected"));
 }
 void RDUController::doSetFps() {
     emit notifyUserOfState(QString("Setup FPS"));
-    emit logMessage(QString("Set FPS Divisor %1.").arg(divisor));
+    qInfo() << (QString("Set FPS Divisor %1.").arg(divisor));
     writeWord(CSRMap::get().FPS_DIVISOR,divisor);
     fpsTimeout.setSingleShot(true);
     fpsTimeout.start(5000);
@@ -245,7 +245,7 @@ void RDUController::readyRead() {
                 /* Check for errors... */
                 if (!status)
                 {
-                    emit logMessage(QString("Error occurred during decode: %1.").arg(PB_GET_ERROR(&stream)));
+                    qInfo() << (QString("Error occurred during decode: %1.").arg(PB_GET_ERROR(&stream)));
                 } else {
                     if(msg_resp.which_payload == Response_ping_tag) {
                         emit pingResponse();
@@ -255,7 +255,7 @@ void RDUController::readyRead() {
                     }
                     if(msg_resp.which_payload == Response_lrxd_tag) {
                         QByteArray lrxd((char *)msg_resp.payload.lrxd.data.bytes, msg_resp.payload.lrxd.data.size);
-                        emit logMessage(QString("Got LRXD Bytes: %1 %2").arg(lrxd.size()).arg(lrxd.toHex()));
+                        qInfo() << (QString("Got LRXD Bytes: %1 %2").arg(lrxd.size()).arg(lrxd.toHex()));
                     }
                     if(msg_resp.which_payload == Response_ltxd_tag) {
                         QByteArray ltxd((char *)msg_resp.payload.ltxd.data.bytes, msg_resp.payload.ltxd.data.size);
@@ -272,7 +272,7 @@ void RDUController::writeInjectHex(QString toInjectHex) {
 void RDUController::writeInject(QByteArray toInject) {
     Request r = Request_init_default;
     if(toInject.size() > sizeof(r.payload.inject.data.bytes)) {
-        emit logMessage(QString("Inject request too big.  %1.").arg(toInject.size()));
+        qInfo() << (QString("Inject request too big.  %1.").arg(toInject.size()));
         return;
     }
     r.which_payload = Request_inject_tag;
@@ -300,7 +300,7 @@ void RDUController::writeWord(uint32_t addr, uint32_t data) {
     r.payload.writeWord.address = addr;
     r.payload.writeWord.data = data;
 
-    emit logMessage(QString("Write 0x%1 to 0x%2.").arg(addr,8,16).arg(data,8,16));
+    qInfo() << (QString("Write 0x%1 to 0x%2.").arg(addr,8,16,QChar('0')).arg(data,8,16,QChar('0')));
     writeRequest(r);
 }
 void RDUController::setFrameDivisor(uint8_t ndivisior) {

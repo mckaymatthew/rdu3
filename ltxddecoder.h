@@ -11,8 +11,6 @@ public:
     explicit LtxdDecoder(QObject *parent = nullptr);
 public slots:
     void newData(QByteArray);
-signals:
-    void logMessage(QString);
 private:
     bool searching = true;
     void processByte(unsigned char byte);

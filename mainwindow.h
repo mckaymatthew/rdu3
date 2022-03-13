@@ -36,8 +36,6 @@ public:
 signals:
     void logCsv(bool log);
 public slots:
-    void updateState(QString note);
-
     void injectTouch(QPoint l);
     void injectTouchRelease();
 private slots:
@@ -55,13 +53,21 @@ private slots:
     void frontPanelButton_down(QString name, QByteArray d);
     void frontPanelButton_up(QString name, QByteArray d);
 
+    QLabel* whichLabel();
+
+    void on_actionFull_triggered();
+
+    void on_actionMinimal_triggered();
+
+    void on_actionScreen_Only_triggered();
+
+    void on_actionExit_FRONT_triggered();
+
 protected:
     void closeEvent(QCloseEvent *event) override;
-    void resizeEvent(QResizeEvent *event) override;
 private:
     void connectPanelButton(QPushButton* but, RDUController* target, QString onClick, QString onRelease);
     void drawError();
-    void drawError(QString error);
 
     Ui::MainWindow *ui;
     QSettings m_settings;
@@ -69,7 +75,6 @@ private:
     RDUWorker* m_worker;
     RDUController m_controller;
     QByteArray m_framebuffer;
-    QString m_errorLast;
     bool inhibit{false};
     QTimer m_touchRearm;
     QElapsedTimer m_buttonDown;

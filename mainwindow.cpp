@@ -16,6 +16,7 @@
 
 using namespace Qt;
 using namespace std;
+
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
@@ -28,31 +29,25 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
 
     if(CSRMap::get().updated) {
-        this->ui->statusMessages->append(QString("Updated CSR Mappings from file."));
-        this->ui->statusMessages->append(QString("CLK GATE: 0x%1.").arg(CSRMap::get().CLK_GATE,8,16));
-        this->ui->statusMessages->append(QString("CPU Reset: 0x%1.").arg(CSRMap::get().CPU_RESET,8,16));
+        qInfo() << (QString("Updated CSR Mappings from file."));
+        qInfo() << (QString("CLK GATE: 0x%1.").arg(CSRMap::get().CLK_GATE,8,16));
+        qInfo() << (QString("CPU Reset: 0x%1.").arg(CSRMap::get().CPU_RESET,8,16));
     }
     QThread::currentThread()->setObjectName("GUI Thread");
 
     m_workerThread = new QThread();
     m_worker = new RDUWorker();
     m_worker->moveToThread(m_workerThread);
-//    m_worker = new RDUWorker(m_workerThread);
     connect(&m_controller, &RDUController::notifyUserOfState, [this](QString msg){this->ui->stateLabel->setText(msg);});
-    connect(&m_controller, &RDUController::logMessage, this, &MainWindow::updateState);
-    connect(&m_controller, &RDUController::logMessageWithError, [&](QString msg, QString err){
-        updateState(msg);
-        this->drawError(err);
-    });
-
-    connect(m_worker, &RDUWorker::message, [&](QString msg){this->ui->statusMessages->append(msg);});
+    connect(&m_controller, &RDUController::RDUNotReady, [this](){ this->drawError();});
+    connect(m_worker, &RDUWorker::message, [](QString msg){qInfo() << msg;});
     connect(m_worker, &RDUWorker::newStats, this, &MainWindow::workerStats);
     connect(m_worker, &RDUWorker::newFrame, this, &MainWindow::workerFrame);
     connect(this, &MainWindow::logCsv, m_worker, &RDUWorker::logPacketData);
 
     m_workerThread->start();
     QMetaObject::invokeMethod(m_worker,&RDUWorker::startWorker);
-    drawError("");
+    drawError();
 
 
 
@@ -71,7 +66,12 @@ MainWindow::MainWindow(QWidget *parent)
     connect(this->ui->renderZone, &ClickableLabel::touch, this, &MainWindow::injectTouch);
     connect(this->ui->renderZone, &ClickableLabel::release, this, &MainWindow::injectTouchRelease);
     connect(this->ui->renderZone, &ClickableLabel::wheely, this, &MainWindow::tuneMainDial);
-//    restoreGeometry(m_settings.value("mainWindow/geometry").toByteArray());
+    connect(this->ui->renderZone_2, &ClickableLabel::touch, this, &MainWindow::injectTouch);
+    connect(this->ui->renderZone_2, &ClickableLabel::release, this, &MainWindow::injectTouchRelease);
+    connect(this->ui->renderZone_2, &ClickableLabel::wheely, this, &MainWindow::tuneMainDial);
+    connect(this->ui->renderZone_3, &ClickableLabel::touch, this, &MainWindow::injectTouch);
+    connect(this->ui->renderZone_3, &ClickableLabel::release, this, &MainWindow::injectTouchRelease);
+    connect(this->ui->renderZone_3, &ClickableLabel::wheely, this, &MainWindow::tuneMainDial);
     m_touchRearm.start(30);
 
 
@@ -83,7 +83,7 @@ MainWindow::MainWindow(QWidget *parent)
     m_controller.startController();
 
 
-    QList<QPushButton*> frontPanelButtons = this->findChildren<QPushButton *>(QRegularExpression("fpb\\_.+"));
+    QList<QPushButton*> frontPanelButtons = this->findChildren<QPushButton *>(QRegularExpression("fpb.+"));
     for(auto b : frontPanelButtons) {
         auto name = b->objectName();
         auto parts = name.split("_");
@@ -100,12 +100,12 @@ MainWindow::MainWindow(QWidget *parent)
             qInfo() <<  QString("Button: %1, %2, %3, %4").arg(name).arg(textLabel).arg(enableStr).arg(disableStr);
         }
     }
+//    QVariant index = m_settings.value("mainWindow/stackIndex", QVariant(0));
+//    this->ui->stackedWidget->setCurrentIndex(index.toInt());
+//    restoreGeometry(m_settings.value("mainWindow/geometry").toByteArray());
 }
-void MainWindow::drawError() {
-    drawError(m_errorLast);
-}
-void MainWindow::drawError(QString error){
-    m_errorLast = error;
+
+void MainWindow::drawError(){
     QString message = QString("No Signal");
     QImage fb(COLUMNS,LINES,QImage::Format_RGB16);
     fb.fill(QColor("Black"));
@@ -114,17 +114,18 @@ void MainWindow::drawError(QString error){
 
     p.setPen(QPen(Qt::red));
     p.setFont(QFont("Courier New", 48, QFont::Bold));
-    p.drawText(fb.rect(), Qt::AlignCenter, QString("%1\n%2").arg(message).arg(error));
+    p.drawText(fb.rect(), Qt::AlignCenter, QString("%1").arg(message));
     p.end();
-    int w = this->ui->renderZone->width();
-    int h = this->ui->renderZone->height();
+    auto zone = whichLabel();
+    int w = zone->width();
+    int h = zone->height();
 //    qInfo() << QString("W: %1 H: %2").arg(w).arg(h);
     auto i = QPixmap::fromImage(fb);
     auto scaled = i.scaled(w,h,Qt::KeepAspectRatio, Qt::SmoothTransformation);
 //    qInfo() <<  QString("W: %1 H: %2").arg(scaled.width()).arg(scaled.height());
 //    qInfo() << "";
-    this->ui->renderZone->setPixmap(scaled);
-    this->ui->renderZone->setMinimumSize(COLUMNS, LINES);
+    zone->setPixmap(scaled);
+    zone->setMinimumSize(COLUMNS, LINES);
 }
 MainWindow::~MainWindow()
 {
@@ -146,69 +147,60 @@ void MainWindow::workerStats(uint32_t packets, uint32_t badPackets, uint32_t ooo
 
 void MainWindow::workerFrame()
 {
+    auto zone = whichLabel();
     m_framebuffer = m_worker->getCopy();
     QImage img((const uchar*) m_framebuffer.data(), COLUMNS, LINES, COLUMNS * sizeof(uint16_t),QImage::Format_RGB16);
     auto p = QPixmap::fromImage(img);
-    int w = this->ui->renderZone->width();
-    int h = this->ui->renderZone->height();
+    int w = zone->width();
+    int h = zone->height();
     auto s = p.scaled(w,h,Qt::KeepAspectRatio);
-    this->ui->renderZone->setPixmap(s);
-//    this->ui->renderZone->setMinimumSize(1,1);
+    zone->setPixmap(s);
 
 }
 
-void MainWindow::resizeEvent(QResizeEvent *event) {
-    QMainWindow::resizeEvent(event);
-//    drawError();
-}
 void MainWindow::closeEvent(QCloseEvent *event)
 {
 
     QSettings settings("KE0PSL", "RDU3");
-    qDebug() << "Close event" << settings.fileName();
+    qInfo() << "Close event, save parameters to " << settings.fileName();
     settings.setValue("mainWindow/geometry", saveGeometry());
+    settings.setValue("mainWindow/stackIndex", this->ui->stackedWidget->currentIndex());
 
     m_controller.writeWord(CSRMap::get().CLK_GATE,0);
     QMainWindow::closeEvent(event);
 }
 
-void MainWindow::updateState(QString note) {
-    if(this->ui && this->ui->statusMessages) {
-        this->ui->statusMessages->append(note);
-    }
-}
-
 void MainWindow::on_actionInhibit_Transmit_triggered()
 {
     this->ui->lastActionLabel->setText(QString("Debug Clk Inhibit"));
-    updateState("Debug: Inhibit Tx.");
+    qInfo() << "Debug: Inhibit Tx.";
     m_controller.writeWord(CSRMap::get().CLK_GATE,0);
 }
 
 void MainWindow::on_actionEnable_Transmit_triggered()
 {
     this->ui->lastActionLabel->setText(QString("Debug Clk Enable"));
-    updateState("Debug: Enable Tx.");
+    qInfo() << ("Debug: Enable Tx.");
     m_controller.writeWord(CSRMap::get().CLK_GATE,1);
 }
 
 void MainWindow::on_actionResetSOC_triggered()
 {
     this->ui->lastActionLabel->setText(QString("Rest CPU"));
-    updateState("Debug: Rest SOC.");
+    qInfo() << ("Debug: Rest SOC.");
     m_controller.writeWord(CSRMap::get().CPU_RESET,1);
 }
 
 void MainWindow::on_actionHaltSOC_triggered()
 {
     this->ui->lastActionLabel->setText(QString("Halt CPU"));
-    updateState("Debug: Halt SOC.");
+    qInfo() << ("Debug: Halt SOC.");
     m_controller.writeWord(CSRMap::get().CPU_RESET+1,9); //unaligned write causes CPU to fault
 }
 
 void MainWindow::on_actionLog_Network_Metadata_toggled(bool arg1)
 {
-    updateState(QString("Debug: High speed network metadata logging to %1.").arg(arg1?"Enabled":"Disabled"));
+    qInfo() << (QString("Debug: High speed network metadata logging to %1.").arg(arg1?"Enabled":"Disabled"));
     emit logCsv(arg1);
 }
 
@@ -218,7 +210,7 @@ void MainWindow::action_FPS_triggered(QAction* fps, bool) {
     auto newFramerate = fps->objectName().right(2).toUInt(&ok);
     this->ui->lastActionLabel->setText(QString("Set FPS %1").arg(newFramerate));
     uint8_t divisor = (60/newFramerate);
-    updateState(QString("Framerate set to %1 FPS (divisor %2).").arg(newFramerate).arg(divisor));
+    qInfo() << (QString("Framerate set to %1 FPS (divisor %2).").arg(newFramerate).arg(divisor));
     m_settings.setValue("mainWindow/frameRate",fps->objectName());
     m_controller.setFrameDivisor(divisor-1);
     QList<QAction*> fpsActions = this->findChildren<QAction *>(QRegularExpression("actionFPS\\_(\\d+)"));
@@ -239,7 +231,7 @@ void MainWindow::on_actionSave_PNG_triggered()
     QFile file(filename);
     file.open(QIODevice::WriteOnly);
     p.save(&file, "PNG");
-    updateState(QString("Saved frame to %1.").arg(filename));
+    qInfo() << (QString("Saved frame to %1.").arg(filename));
 }
 
 void MainWindow::injectTouch(QPoint l) {
@@ -261,7 +253,7 @@ void MainWindow::injectTouch(QPoint l) {
     injectParameter.append(quint8(y>>0));
     injectParameter.append(quint8(y>>8));
     injectParameter.append(QByteArray::fromHex("fd"));
-    updateState(QString("Inject touch to %1,%2. Hex: %3 ").arg(l.x()).arg(l.y()).arg(injectParameter.toHex()));
+    qInfo() << (QString("Inject touch to %1,%2. Hex: %3 ").arg(l.x()).arg(l.y()).arg(injectParameter.toHex()));
     m_controller.writeInject(injectParameter);
 
 //    m_touchRearm.start(30);
@@ -269,14 +261,14 @@ void MainWindow::injectTouch(QPoint l) {
 void MainWindow::injectTouchRelease() {
     this->ui->lastActionLabel->setText(QString("Touch Release"));
     QByteArray injectParameter = QByteArray::fromHex("fe1300270f270ffd");
-    updateState(QString("Touch Release: %1.").arg(injectParameter.toHex()));
+    qInfo() << (QString("Touch Release: %1.").arg(injectParameter.toHex()));
     m_controller.writeInject(injectParameter);
 }
 
 void MainWindow::frontPanelButton_down(QString name, QByteArray d) {
     this->ui->lastActionLabel->setText(QString("Button Press: %1").arg(name));
     m_controller.writeInject(d);
-    updateState(QString("Inject press front panel button: %1, %2.").arg(name).arg(d.toHex()));
+    qInfo() << (QString("Inject press front panel button: %1, %2.").arg(name).arg(d.toHex()));
     m_buttonDown.start();
 
 }
@@ -287,7 +279,7 @@ void MainWindow::frontPanelButton_up(QString name, QByteArray d) {
     auto downLongEnough = downTime > minTime;
     if(downLongEnough) {
         m_controller.writeInject(d);
-        updateState(QString("Inject release front panel button: %1, %2.").arg(name).arg(d.toHex()));
+        qInfo() << (QString("Inject release front panel button: %1, %2.").arg(name).arg(d.toHex()));
     } else {
         auto delayTime = minTime - downTime;
         qInfo() << QString("Defer up for %1 ms").arg(delayTime);
@@ -298,6 +290,72 @@ void MainWindow::frontPanelButton_up(QString name, QByteArray d) {
 
 void MainWindow::tuneMainDial(int x) {
     this->ui->lastActionLabel->setText(QString("Dial %1").arg(x));
-    updateState(QString("Spin main dial, request %1.").arg(x));
+    qInfo() << (QString("Spin main dial, request %1.").arg(x));
     this->m_controller.spinMainDial(x);
 }
+QLabel* MainWindow::whichLabel() {
+    if(this->ui->renderZone->isVisible()) {
+        return this->ui->renderZone;
+    }
+    if(this->ui->renderZone_2->isVisible()) {
+        return this->ui->renderZone_2;
+    }
+    if(this->ui->renderZone_3->isVisible()) {
+        return this->ui->renderZone_3;
+    }
+    return this->ui->renderZone;
+}
+
+void MainWindow::on_actionFull_triggered()
+{
+    this->ui->stackedWidget->setCurrentIndex(0);
+    this->ui->page_all->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    this->ui->page_minimal->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
+    this->ui->page_screen->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
+
+    QTimer::singleShot(5,[this](){
+        this->resize(this->minimumSizeHint());
+//        adjustSize();
+        drawError();  //TODO: This is a hack to get widget to resize.
+        //For some reason have to wait for event loop to cycle to get desired size?
+    });
+}
+
+
+void MainWindow::on_actionMinimal_triggered()
+{
+    this->ui->stackedWidget->setCurrentIndex(1);
+    this->ui->page_all->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
+    this->ui->page_minimal->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    this->ui->page_screen->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
+
+    QTimer::singleShot(5,[this](){
+        this->resize(this->minimumSizeHint());
+//        adjustSize();
+        drawError(); //TODO: This is a hack to get widget to resize.
+        //For some reason have to wait for event loop to cycle to get desired size?
+    });
+}
+
+
+void MainWindow::on_actionScreen_Only_triggered()
+{
+    this->ui->stackedWidget->setCurrentIndex(2);
+    this->ui->page_all->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
+    this->ui->page_minimal->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
+    this->ui->page_screen->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+
+    QTimer::singleShot(5,[this](){
+        this->resize(this->minimumSizeHint());
+//        adjustSize();
+        drawError(); //TODO: This is a hack to get widget to resize.
+        //For some reason have to wait for event loop to cycle to get desired size?
+    });
+}
+
+
+void MainWindow::on_actionExit_FRONT_triggered()
+{
+
+}
+
