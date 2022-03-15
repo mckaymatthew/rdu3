@@ -44,6 +44,8 @@ private:
     QMutex m_copyMux;
 
     uint16_t m_packetIdLast;
+
+    QByteArray pkt;
 };
 
 #endif // RDUWORKER_H

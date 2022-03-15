@@ -1,6 +1,7 @@
 #include "clickablelabel.h"
 #include "QMouseEvent"
 #include "RDUConstants.h"
+#include <QPainter>
 
 namespace {
     template <typename T> int sgn(T val) {
@@ -57,4 +58,9 @@ void ClickableLabel::timerEvent(QTimerEvent*) {
         emit wheely(accumulatedWheelies);
         accumulatedWheelies = 0;
     }
+}
+
+void ClickableLabel::paintEvent(QPaintEvent*) {
+    QPainter painter(this);
+    painter.drawImage(0,0,toRender);
 }

@@ -19,6 +19,7 @@
 #include <QThread>
 #include "csrmap.h"
 #include <QSettings>
+#include "clickablelabel.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -51,7 +52,7 @@ private slots:
     void frontPanelButton_down(QString name, QByteArray d);
     void frontPanelButton_up(QString name, QByteArray d);
 
-    QLabel* whichLabel();
+    ClickableLabel* whichLabel();
 
     void on_actionFull_triggered();
 

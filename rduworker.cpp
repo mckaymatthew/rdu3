@@ -41,21 +41,16 @@ void RDUWorker::logPacketData(bool state)
 
 void RDUWorker::processPendingDatagrams()
 {
-    QByteArray pkt;
     pkt.resize(BYTES_PER_LINE + BYTES_PACKET_OVERHEAD);
-    while (true) {
-//    while (m_incoming->hasPendingDatagrams()) { //Checking this is expensive on windows?
-//        pkt.resize(m_incoming->pendingDatagramSize());
+    while (true) { //hasPendingDatagrams() is expensive on Windows? Just use return value of read
         auto bytesRead = m_incoming->readDatagram(pkt.data(), pkt.size(),nullptr,nullptr);
         if (bytesRead == -1) {
             return;
         }
-        m_packetCount++;
-//        QNetworkDatagram datagram = m_incoming->receiveDatagram();
         if(bytesRead != BYTES_PER_LINE + BYTES_PACKET_OVERHEAD) {
-            m_badPackets++;
             continue;
         }
+        m_packetCount++;
         auto header = pkt.data() + 2 ;
         const uint16_t packetCtr = *((uint16_t*)header);
         const uint16_t lineField = *((uint16_t*)header+1);
@@ -80,11 +75,13 @@ void RDUWorker::processPendingDatagrams()
         m_packetIdLast = packetCtr;
         if(oooPacket) {
             m_oooPackets++;
-            continue;
+            qInfo() << QString("OOO packet %1, %2").arg(packetCtr).arg(m_packetIdLast);
+//            continue;
         }
 
         if(lineField > LINES) {
             m_badPackets++;
+            qInfo() << QString("Bad packet %1").arg(lineField);
             continue;
         }
 
@@ -100,12 +97,10 @@ void RDUWorker::processPendingDatagrams()
                 QMutexLocker locker(&m_copyMux);
                 m_writeBuffer = !m_writeBuffer;
                 m_fresh = true;
-
             }
             emit newFrame();
         }
     }
-    emit newStats(m_packetCount,m_badPackets, m_oooPackets);
 }
 
 bool RDUWorker::getCopy(QByteArray& r)

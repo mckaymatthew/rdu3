@@ -61,15 +61,14 @@ MainWindow::MainWindow(QWidget *parent)
         toClick->activate(QAction::ActionEvent::Trigger);
     }
 
-    connect(this->ui->renderZone, &ClickableLabel::touch, this, &MainWindow::injectTouch);
-    connect(this->ui->renderZone, &ClickableLabel::release, this, &MainWindow::injectTouchRelease);
-    connect(this->ui->renderZone, &ClickableLabel::wheely, this, &MainWindow::tuneMainDial);
-    connect(this->ui->renderZone_2, &ClickableLabel::touch, this, &MainWindow::injectTouch);
-    connect(this->ui->renderZone_2, &ClickableLabel::release, this, &MainWindow::injectTouchRelease);
-    connect(this->ui->renderZone_2, &ClickableLabel::wheely, this, &MainWindow::tuneMainDial);
-    connect(this->ui->renderZone_3, &ClickableLabel::touch, this, &MainWindow::injectTouch);
-    connect(this->ui->renderZone_3, &ClickableLabel::release, this, &MainWindow::injectTouchRelease);
-    connect(this->ui->renderZone_3, &ClickableLabel::wheely, this, &MainWindow::tuneMainDial);
+    auto zones = { this->ui->renderZone, this->ui->renderZone_2, this->ui->renderZone_3 };
+    for(auto zone: zones) {
+        connect(zone, &ClickableLabel::touch, this, &MainWindow::injectTouch);
+        connect(zone, &ClickableLabel::release, this, &MainWindow::injectTouchRelease);
+        connect(zone, &ClickableLabel::wheely, this, &MainWindow::tuneMainDial);
+        zone->setAutoFillBackground(false);
+        zone->setAttribute(Qt::WA_NoSystemBackground, true);
+    }
     m_touchRearm.start(30);
 
 
@@ -141,15 +140,17 @@ void MainWindow::workerFrame()
     auto workToDo = m_worker->getCopy(m_framebuffer);
     if(workToDo) {
         QImage img((const uchar*) m_framebuffer.data(), COLUMNS, LINES, COLUMNS * sizeof(uint16_t),QImage::Format_RGB16);
-        auto iNew = img.scaled(w,h,Qt::KeepAspectRatio);
+        zone->toRender = img.scaled(w,h,Qt::KeepAspectRatio);
+        zone->update();
+//        auto iNew = img.scaled(w,h,Qt::KeepAspectRatio);
 
-        if(m_lingering.isNull()) {
-            m_lingering = QPixmap::fromImage(iNew);
-        } else {
-            m_lingering.convertFromImage(iNew);
-        }
+//        if(m_lingering.isNull()) {
+//            m_lingering = QPixmap::fromImage(iNew);
+//        } else {
+//            m_lingering.convertFromImage(iNew);
+//        }
     //    qInfo() << m_lingering.cacheKey();
-        zone->setPixmap(m_lingering);
+//        zone->setPixmap(m_lingering);
     }
 }
 
@@ -288,7 +289,7 @@ void MainWindow::tuneMainDial(int x) {
     qInfo() << (QString("Spin main dial, request %1.").arg(x));
     this->m_controller.spinMainDial(x);
 }
-QLabel* MainWindow::whichLabel() {
+ClickableLabel* MainWindow::whichLabel() {
     if(this->ui->renderZone->isVisible()) {
         return this->ui->renderZone;
     }
