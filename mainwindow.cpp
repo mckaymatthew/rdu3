@@ -80,9 +80,6 @@ MainWindow::MainWindow(QWidget *parent)
     if(fpsAction) {
         fpsAction->setChecked(true);
     }
-    m_controller.startController();
-
-
     QList<QPushButton*> frontPanelButtons = this->findChildren<QPushButton *>(QRegularExpression("fpb.+"));
     for(auto b : frontPanelButtons) {
         auto name = b->objectName();

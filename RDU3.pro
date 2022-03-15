@@ -1,8 +1,4 @@
-QT       += core gui network statemachine
-win32 {
-QT += statemachine
-}
-
+QT       += core gui network
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 CONFIG += c++11
