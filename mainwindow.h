@@ -76,5 +76,6 @@ private:
     bool inhibit{false};
     QTimer m_touchRearm;
     QElapsedTimer m_buttonDown;
+    QPixmap m_lingering;
 };
 #endif // MAINWINDOW_H
