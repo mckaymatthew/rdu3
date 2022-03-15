@@ -15,6 +15,9 @@ SOURCES += \
     ../rdu_app/build/src/simple.pb.c \
     clickablelabel.cpp \
     csrmap.cpp \
+#    ecpprog/ecpprog/ecpprog.c \
+#    ecpprog/ecpprog/jtag_tap.c \
+#    ecpprog/ecpprog/mpsse.c \
     formtest.cpp \
     ltxddecoder.cpp \
     main.cpp \
@@ -49,6 +52,9 @@ HEADERS += \
     RDUConstants.h \
     clickablelabel.h \
     csrmap.h \
+#    ecpprog/ecpprog/jtag.h \
+#    ecpprog/ecpprog/lattice_cmds.h \
+#    ecpprog/ecpprog/mpsse.h \
     formtest.h \
     ltxddecoder.h \
     mainwindow.h \
