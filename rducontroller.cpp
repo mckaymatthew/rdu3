@@ -188,7 +188,7 @@ RDUController::state RDUController::Ping() {
     pb_encode(&stream, Request_fields, &r);
     uint8_t message_length = stream.bytes_written;
     socket.write((const char *)&message_length,1);
-    auto writeRet = socket.write((const char *)buffer,message_length);
+    socket.write((const char *)buffer,message_length);
     return RDUController::state::RDU_Ping_Wait;
 }
 
@@ -251,7 +251,7 @@ void RDUController::readyRead() {
                     }
                     if(msg_resp.which_payload == Response_lrxd_tag) {
                         QByteArray lrxd((char *)msg_resp.payload.lrxd.data.bytes, msg_resp.payload.lrxd.data.size);
-                        qInfo() << (QString("Got LRXD Bytes: %1 %2").arg(lrxd.size()).arg(lrxd.toHex()));
+                        qInfo() << (QString("Got LRXD Bytes: %1 %2").arg(lrxd.size()).arg(QString(lrxd.toHex())));
                     }
                     if(msg_resp.which_payload == Response_ltxd_tag) {
                         QByteArray ltxd((char *)msg_resp.payload.ltxd.data.bytes, msg_resp.payload.ltxd.data.size);
@@ -267,7 +267,8 @@ void RDUController::writeInjectHex(QString toInjectHex) {
 }
 void RDUController::writeInject(QByteArray toInject) {
     Request r = Request_init_default;
-    if(toInject.size() > sizeof(r.payload.inject.data.bytes)) {
+    qsizetype maxInject = sizeof(r.payload.inject.data.bytes);
+    if(toInject.size() > maxInject) {
         qInfo() << (QString("Inject request too big.  %1.").arg(toInject.size()));
         return;
     }

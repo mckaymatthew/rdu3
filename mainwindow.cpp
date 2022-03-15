@@ -211,7 +211,7 @@ void MainWindow::action_FPS_triggered(QAction* fps, bool) {
 
 void MainWindow::on_actionSave_PNG_triggered()
 {
-    const QPixmap p = this->ui->renderZone->pixmap();
+    const QPixmap p = this->ui->renderZone->pixmap(Qt::ReturnByValue);
     QDateTime time = QDateTime::currentDateTime();
     QString filename = QString("%1.png").arg(time.toString("dd.MM.yyyy.hh.mm.ss.z"));
     this->ui->lastActionLabel->setText(QString("Save PNG %1").arg(filename));
