@@ -19,7 +19,7 @@ void CSRMap::readCSRFile()
           QString s=in.readLine(); // reads line from file
           if(s.contains("rgb_control_csr")) {
               QStringList details = s.split(',');
-              QString hexAddr = details[2].last(8);
+              QString hexAddr = details[2].right(8);
               int value = hexAddr.toUInt(&CLK_GATE_OK, 16);
               if(CLK_GATE_OK) {
                   if (value == 0) {
@@ -31,7 +31,7 @@ void CSRMap::readCSRFile()
           }
           if(s.contains("ctrl_reset")) {
               QStringList details = s.split(',');
-              QString hexAddr = details[2].last(8);
+              QString hexAddr = details[2].right(8);
               int value = hexAddr.toUInt(&CPU_RESET_OK, 16);
               if(CPU_RESET_OK) {
                   if (value == 0) {

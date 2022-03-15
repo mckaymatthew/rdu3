@@ -44,7 +44,6 @@ SOURCES += \
 
 HEADERS += \
     simple.pb.h \
-    NoSignal.h \
     RDUConstants.h \
     clickablelabel.h \
     csrmap.h \
@@ -70,7 +69,6 @@ HEADERS += \
     qmdnsengine/src/include/qmdnsengine/message.h \
     qmdnsengine/src/include/qmdnsengine/prober.h \
     qmdnsengine/src/include/qmdnsengine/provider.h \
-    qmdnsengine/src/include/qmdnsengine/qmdnsengine_export.h \
     qmdnsengine/src/include/qmdnsengine/query.h \
     qmdnsengine/src/include/qmdnsengine/record.h \
     qmdnsengine/src/include/qmdnsengine/resolver.h \
