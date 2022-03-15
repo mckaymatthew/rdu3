@@ -1,0 +1,6 @@
+.vs
+build-qmdnsengine-Desktop_Qt_6_2_3_MSVC2019_64bit-Debug
+*.pdb
+*.idb
+.qmake.stash
+*.pro.user*
