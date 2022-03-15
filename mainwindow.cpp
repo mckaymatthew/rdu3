@@ -40,7 +40,6 @@ MainWindow::MainWindow(QWidget *parent)
     connect(&m_controller, &RDUController::notifyUserOfState, [this](QString msg){this->ui->stateLabel->setText(msg);});
     connect(&m_controller, &RDUController::RDUNotReady, [this](){ this->drawError();});
     connect(m_worker, &RDUWorker::message, [](QString msg){qInfo() << msg;});
-    connect(m_worker, &RDUWorker::newStats, this, &MainWindow::workerStats);
     connect(m_worker, &RDUWorker::newFrame, this, &MainWindow::workerFrame);
     connect(this, &MainWindow::logCsv, m_worker, &RDUWorker::logPacketData);
 
@@ -133,14 +132,6 @@ MainWindow::~MainWindow()
     ui = nullptr;
 }
 
-void MainWindow::workerStats(uint32_t packets, uint32_t badPackets, uint32_t oooPackets)
-{
-//    this->ui->totalPackets->setText(QString("Packets: %1").arg(packets));
-//    this->ui->totalPacketsBad->setText(QString("Bad Packets: %1").arg(badPackets));
-//    this->ui->totalOOO->setText(QString("OOO Packets: %1").arg(oooPackets));
-}
-
-
 void MainWindow::workerFrame()
 {
     auto zone = whichLabel();
@@ -220,7 +211,7 @@ void MainWindow::action_FPS_triggered(QAction* fps, bool) {
 
 void MainWindow::on_actionSave_PNG_triggered()
 {
-    auto p = this->ui->renderZone->pixmap();
+    const QPixmap p = this->ui->renderZone->pixmap();
     QDateTime time = QDateTime::currentDateTime();
     QString filename = QString("%1.png").arg(time.toString("dd.MM.yyyy.hh.mm.ss.z"));
     this->ui->lastActionLabel->setText(QString("Save PNG %1").arg(filename));
@@ -249,7 +240,7 @@ void MainWindow::injectTouch(QPoint l) {
     injectParameter.append(quint8(y>>0));
     injectParameter.append(quint8(y>>8));
     injectParameter.append(QByteArray::fromHex("fd"));
-    qInfo() << (QString("Inject touch to %1,%2. Hex: %3 ").arg(l.x()).arg(l.y()).arg(injectParameter.toHex()));
+    qInfo() << (QString("Inject touch to %1,%2. Hex: %3 ").arg(l.x()).arg(l.y()).arg(QString(injectParameter.toHex())));
     m_controller.writeInject(injectParameter);
 
 //    m_touchRearm.start(30);
@@ -257,14 +248,14 @@ void MainWindow::injectTouch(QPoint l) {
 void MainWindow::injectTouchRelease() {
     this->ui->lastActionLabel->setText(QString("Touch Release"));
     QByteArray injectParameter = QByteArray::fromHex("fe1300270f270ffd");
-    qInfo() << (QString("Touch Release: %1.").arg(injectParameter.toHex()));
+    qInfo() << (QString("Touch Release: %1.").arg(QString(injectParameter.toHex())));
     m_controller.writeInject(injectParameter);
 }
 
 void MainWindow::frontPanelButton_down(QString name, QByteArray d) {
     this->ui->lastActionLabel->setText(QString("Button Press: %1").arg(name));
     m_controller.writeInject(d);
-    qInfo() << (QString("Inject press front panel button: %1, %2.").arg(name).arg(d.toHex()));
+    qInfo() << (QString("Inject press front panel button: %1, %2.").arg(name).arg(QString(d.toHex())));
     m_buttonDown.start();
 
 }
@@ -275,7 +266,7 @@ void MainWindow::frontPanelButton_up(QString name, QByteArray d) {
     auto downLongEnough = downTime > minTime;
     if(downLongEnough) {
         m_controller.writeInject(d);
-        qInfo() << (QString("Inject release front panel button: %1, %2.").arg(name).arg(d.toHex()));
+        qInfo() << (QString("Inject release front panel button: %1, %2.").arg(name).arg(QString(d.toHex())));
     } else {
         auto delayTime = minTime - downTime;
         qInfo() << QString("Defer up for %1 ms").arg(delayTime);

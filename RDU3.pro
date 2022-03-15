@@ -99,8 +99,6 @@ FORMS += \
 INCLUDEPATH += $$PWD/qMDNS/src/
 INCLUDEPATH += $$PWD/nanopb
 INCLUDEPATH += $$PWD/qmdnsengine/src/include/
-INCLUDEPATH += $$PWD/../rdu_app/build/src/
-INCLUDEPATH += $$PWD/../rdu_app/build/
 
 
 # Default rules for deployment.
