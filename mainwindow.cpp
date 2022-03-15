@@ -136,17 +136,19 @@ void MainWindow::workerFrame()
 {
 //    qInfo() << m_lingering.cacheKey();
     auto zone = whichLabel();
-    m_framebuffer = m_worker->getCopy();
-    QImage img((const uchar*) m_framebuffer.data(), COLUMNS, LINES, COLUMNS * sizeof(uint16_t),QImage::Format_RGB16);
-    if(m_lingering.isNull()) {
-        m_lingering = QPixmap::fromImage(img);
-    } else {
-        m_lingering.convertFromImage(img);
-    }
     int w = zone->width();
     int h = zone->height();
-    m_lingering = m_lingering.scaled(w,h,Qt::KeepAspectRatio);
-//    qInfo() << s.cacheKey();
+
+    m_framebuffer = m_worker->getCopy();
+
+    QImage img((const uchar*) m_framebuffer.data(), COLUMNS, LINES, COLUMNS * sizeof(uint16_t),QImage::Format_RGB16);
+    auto iNew = img.scaled(w,h,Qt::KeepAspectRatio);
+
+    if(m_lingering.isNull()) {
+        m_lingering = QPixmap::fromImage(iNew);
+    } else {
+        m_lingering.convertFromImage(iNew);
+    }
     zone->setPixmap(m_lingering);
 
 }
