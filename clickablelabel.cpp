@@ -7,7 +7,7 @@ namespace {
         return (T(0) < val) - (val < T(0));
     }
 }
-ClickableLabel::ClickableLabel(QWidget *parent, Qt::WindowFlags f)
+ClickableLabel::ClickableLabel(QWidget *parent, Qt::WindowFlags)
     : QLabel(parent)
 {
     constexpr int wheelyBuffer = 1000/60;
@@ -35,12 +35,12 @@ void ClickableLabel::mouseMoveEvent(QMouseEvent* event) {
         emit touch(initial);
     }
 }
-void ClickableLabel::mouseReleaseEvent(QMouseEvent* event) {
+void ClickableLabel::mouseReleaseEvent(QMouseEvent*) {
     active = false;
     emit release();
 }
 
-void ClickableLabel::wheelEvent(QWheelEvent *event) {
+void ClickableLabel::wheelEvent(QWheelEvent* event) {
     event->accept();
     QPoint numPixels = event->pixelDelta();
     QPoint numDegrees = event->angleDelta();
@@ -52,7 +52,7 @@ void ClickableLabel::wheelEvent(QWheelEvent *event) {
     }
 }
 
-void ClickableLabel::timerEvent(QTimerEvent *event) {
+void ClickableLabel::timerEvent(QTimerEvent*) {
     if(accumulatedWheelies != 0) {
         emit wheely(accumulatedWheelies);
         accumulatedWheelies = 0;

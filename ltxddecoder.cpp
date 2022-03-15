@@ -28,11 +28,13 @@ void LtxdDecoder::processByte(unsigned char byte) {
 }
 
 void LtxdDecoder::handlePayload() {
-    const bool isTouch = (payload.length() == 6) && (payload[0] == 0x13);
+    constexpr uint8_t touchPayload = 0x13;
+    const bool isTouch = (payload.length() == 6) && (payload[0] == touchPayload);
     if(isTouch) {
         touchPoint();
     } else {
-        qInfo() << (QString("Got unkown LTXD Bytes: %1 %2").arg(payload.size()).arg(payload.toHex()));
+        QString payloadReadable = payload.toHex();
+        qInfo() << (QString("Got unkown LTXD Bytes: %1 %2").arg(payload.size()).arg(payloadReadable));
     }
 }
 void LtxdDecoder::touchPoint() {
