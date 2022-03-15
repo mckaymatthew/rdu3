@@ -1,5 +1,4 @@
 #include "rducontroller.h"
-#include <QSignalTransition>
 #include "pb_encode.h"
 #include "pb_decode.h"
 #include "csrmap.h"

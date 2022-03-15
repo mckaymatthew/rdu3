@@ -4,7 +4,6 @@
 #include <QPixmap>
 #include <QtEndian>
 #include <QTextStream>
-#include <QSignalTransition>
 #include "qmdnsengine/service.h"
 #include <QSettings>
 #include <QPainter>

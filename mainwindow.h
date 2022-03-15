@@ -8,7 +8,6 @@
 #include <QFile>
 #include <QTextStream>
 #include <QHostInfo>
-#include <QStateMachine>
 #include <QTimer>
 #include <QElapsedTimer>
 #include <QTcpSocket>
