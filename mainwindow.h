@@ -62,6 +62,8 @@ private slots:
 
     void on_actionExit_FRONT_triggered();
 
+    void on_actionGenerate_App_Crash_triggered();
+
 protected:
     void closeEvent(QCloseEvent *event) override;
 private:

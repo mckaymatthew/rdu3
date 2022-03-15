@@ -8,6 +8,7 @@ CONFIG += c++11
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
+    paths.cpp \
     simple.pb.c \
     clickablelabel.cpp \
     csrmap.cpp \
@@ -16,9 +17,7 @@ SOURCES += \
 #    ecpprog/ecpprog/mpsse.c \
     formtest.cpp \
     ltxddecoder.cpp \
-    main.cpp \
     mainwindow.cpp \
-    mainwindow2.cpp \
     nanopb/pb_common.c \
     nanopb/pb_decode.c \
     nanopb/pb_encode.c \
@@ -43,6 +42,7 @@ SOURCES += \
     rduworker.cpp
 
 HEADERS += \
+    paths.h \
     simple.pb.h \
     RDUConstants.h \
     clickablelabel.h \
@@ -53,7 +53,6 @@ HEADERS += \
     formtest.h \
     ltxddecoder.h \
     mainwindow.h \
-    mainwindow2.h \
     nanopb/pb.h \
     nanopb/pb_common.h \
     nanopb/pb_decode.h \
@@ -93,15 +92,49 @@ HEADERS += \
 FORMS += \
     formtest.ui \
     mainwindow.ui \
-    mainwindow2.ui \
     rduwindow.ui
 
 INCLUDEPATH += $$PWD/qMDNS/src/
 INCLUDEPATH += $$PWD/nanopb
 INCLUDEPATH += $$PWD/qmdnsengine/src/include/
 
+# Create symbols for dump_syms and symupload
+CONFIG += force_debug_info
+CONFIG += separate_debug_info
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
+
+# Crashpad rules for Windows
+CONFIG(release, debug|release) {
+    SOURCES += main_release.cpp
+    win32 {
+        INCLUDEPATH += C:/crashpad/crashpad/
+        INCLUDEPATH += C:/crashpad/crashpad/out/Default/gen/
+        INCLUDEPATH += C:/crashpad/crashpad/third_party/mini_chromium/mini_chromium
+
+
+        # Crashpad libraries
+        LIBS += -LC:/crashpad/crashpad/out/Default/obj/third_party/mini_chromium/mini_chromium/base -lbase
+        LIBS += -LC:/crashpad/crashpad/out/Default/obj/client -lclient -lcommon
+        LIBS += -LC:/crashpad/crashpad/out/Default/obj/util -lutil
+
+        # System libraries
+        LIBS += -lAdvapi32
+
+        # Build variables
+        CONFIG(debug, debug|release) {
+            EXEDIR = $$OUT_PWD\debug
+        }
+        CONFIG(release, debug|release) {
+            EXEDIR = $$OUT_PWD\release
+        }
+
+        # Copy crashpad_handler.exe to output directory
+        QMAKE_POST_LINK += "copy /y C:/crashpad/crashpad/out/Default/crashpad_handler.exe $$shell_path($$OUT_PWD)\crashpad"
+    }
+} else {
+    SOURCES += main.cpp
+}

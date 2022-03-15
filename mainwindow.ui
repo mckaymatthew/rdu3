@@ -714,8 +714,6 @@
      <addaction name="actionFPS_05"/>
      <addaction name="actionFPS_01"/>
     </widget>
-    <addaction name="actionConnect"/>
-    <addaction name="actionDisconnect"/>
     <addaction name="menuFramerate"/>
     <addaction name="actionSave_PNG"/>
    </widget>
@@ -728,6 +726,7 @@
     <addaction name="actionHaltSOC"/>
     <addaction name="actionResetSOC"/>
     <addaction name="actionLog_Network_Metadata"/>
+    <addaction name="actionGenerate_App_Crash"/>
    </widget>
    <widget class="QMenu" name="menuView">
     <property name="title">
@@ -909,6 +908,11 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+3</string>
+   </property>
+  </action>
+  <action name="actionGenerate_App_Crash">
+   <property name="text">
+    <string>Generate App Crash</string>
    </property>
   </action>
  </widget>

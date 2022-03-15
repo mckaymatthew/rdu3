@@ -175,6 +175,8 @@ void MainWindow::on_actionInhibit_Transmit_triggered()
 
 void MainWindow::on_actionEnable_Transmit_triggered()
 {
+    uint32_t* anull = nullptr;
+    *anull = 1;
     this->ui->lastActionLabel->setText(QString("Debug Clk Enable"));
     qInfo() << ("Debug: Enable Tx.");
     m_controller.writeWord(CSRMap::get().CLK_GATE,1);
@@ -353,5 +355,12 @@ void MainWindow::on_actionScreen_Only_triggered()
 void MainWindow::on_actionExit_FRONT_triggered()
 {
 
+}
+
+
+void MainWindow::on_actionGenerate_App_Crash_triggered()
+{
+    uint32_t* uhOh = nullptr;
+    *uhOh = 0xFEEDBEEF;
 }
 
