@@ -7,7 +7,7 @@
 #include <QByteArray>
 #include <QTcpSocket>
 #include "simple.pb.h"
-#include "LtxdDecoder.h"
+#include "ltxddecoder.h"
 #include <qmdnsengine/server.h>
 #include <qmdnsengine/resolver.h>
 #include <QElapsedTimer>
