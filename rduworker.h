@@ -12,7 +12,7 @@ class RDUWorker : public QObject
     Q_OBJECT
 public:
     explicit RDUWorker(QObject *parent = nullptr);
-    QByteArray getCopy();
+    bool getCopy(QByteArray& r);
 public slots:
     void startWorker();
     void logPacketData(bool state);
@@ -35,6 +35,7 @@ private:
     QFile* m_logFile;
     QTextStream* m_stream;
     bool m_logCsv;
+    bool m_fresh;
 
     QElapsedTimer m_framesStart;
 

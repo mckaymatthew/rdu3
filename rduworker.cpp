@@ -43,9 +43,13 @@ void RDUWorker::processPendingDatagrams()
 {
     QByteArray pkt;
     pkt.resize(BYTES_PER_LINE + BYTES_PACKET_OVERHEAD);
-    while (m_incoming->hasPendingDatagrams()) {
+    while (true) {
+//    while (m_incoming->hasPendingDatagrams()) { //Checking this is expensive on windows?
 //        pkt.resize(m_incoming->pendingDatagramSize());
         auto bytesRead = m_incoming->readDatagram(pkt.data(), pkt.size(),nullptr,nullptr);
+        if (bytesRead == -1) {
+            return;
+        }
         m_packetCount++;
 //        QNetworkDatagram datagram = m_incoming->receiveDatagram();
         if(bytesRead != BYTES_PER_LINE + BYTES_PACKET_OVERHEAD) {
@@ -95,6 +99,8 @@ void RDUWorker::processPendingDatagrams()
             {
                 QMutexLocker locker(&m_copyMux);
                 m_writeBuffer = !m_writeBuffer;
+                m_fresh = true;
+
             }
             emit newFrame();
         }
@@ -102,15 +108,21 @@ void RDUWorker::processPendingDatagrams()
     emit newStats(m_packetCount,m_badPackets, m_oooPackets);
 }
 
-QByteArray RDUWorker::getCopy()
+bool RDUWorker::getCopy(QByteArray& r)
 {
     QMutexLocker locker(&m_copyMux);
-    char * rawPtr = nullptr;
-    if(m_writeBuffer) {
-        rawPtr = m_bufferTwo.data();
+    const bool newData = m_fresh;
+    m_fresh = false;
+    if(newData) {
+        if(m_writeBuffer) {
+            r.replace(0,BYTES_PER_FRAME,m_bufferTwo);
+        } else {
+            r.replace(0,BYTES_PER_FRAME,m_bufferOne);
+        }
     } else {
-        rawPtr = m_bufferOne.data();
+        qInfo() << "Dropped frame?";
     }
-    QByteArray cpy(rawPtr, BYTES_PER_FRAME);
-    return cpy;
+    return newData;
+
+
 }
