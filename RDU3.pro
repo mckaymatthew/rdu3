@@ -111,17 +111,10 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 CONFIG(release, debug|release) {
     SOURCES += main_release.cpp
     win32 {
-        INCLUDEPATH += C:/crashpad/crashpad/
-        INCLUDEPATH += C:/crashpad/crashpad/out/Default/gen/
-        INCLUDEPATH += C:/crashpad/crashpad/third_party/mini_chromium/mini_chromium
-
-
-        # Crashpad libraries
-        LIBS += -LC:/crashpad/crashpad/out/Default/obj/third_party/mini_chromium/mini_chromium/base -lbase
-        LIBS += -LC:/crashpad/crashpad/out/Default/obj/client -lclient -lcommon
-        LIBS += -LC:/crashpad/crashpad/out/Default/obj/util -lutil
-
-        # System libraries
+        INCLUDEPATH += $$PWD/crashpad/includes/
+        INCLUDEPATH += $$PWD/crashpad/includes/out/Default/gen/
+        INCLUDEPATH += $$PWD/crashpad/includes/third_party/mini_chromium/mini_chromium
+        LIBS += -L$$PWD/crashpad/lib/win/ -lbase -lclient -lcommon -lutil
         LIBS += -lAdvapi32
 
         # Build variables
@@ -132,8 +125,7 @@ CONFIG(release, debug|release) {
             EXEDIR = $$OUT_PWD\release
         }
 
-        # Copy crashpad_handler.exe to output directory
-        QMAKE_POST_LINK += "copy /y C:/crashpad/crashpad/out/Default/crashpad_handler.exe $$shell_path($$OUT_PWD)\crashpad"
+        QMAKE_POST_LINK += "copy /y $$shell_path($$PWD)\crashpad\bin\win\crashpad_handler.exe $$shell_path($$OUT_PWD)\crashpad"
     }
 } else {
     SOURCES += main.cpp

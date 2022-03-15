@@ -3,7 +3,7 @@
 #include "rduwindow.h"
 
 #if defined(Q_OS_MACOS)
-    #include <mach-o/dyld.h>
+    #include <mach-o/dyld.h
 #endif
 
 #if defined(Q_OS_LINUX)
