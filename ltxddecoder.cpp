@@ -29,7 +29,8 @@ void LtxdDecoder::processByte(unsigned char byte) {
 
 void LtxdDecoder::handlePayload() {
     constexpr uint8_t touchPayload = 0x13;
-    const bool isTouch = (payload.length() == 6) && (payload[0] == touchPayload);
+    const uint8_t payloadId = payload[0];
+    const bool isTouch = (payload.length() == 6) && (payloadId == touchPayload);
     if(isTouch) {
         touchPoint();
     } else {
@@ -38,7 +39,8 @@ void LtxdDecoder::handlePayload() {
     }
 }
 void LtxdDecoder::touchPoint() {
-    qInfo() << (QString("Touch Payload: %1 fe%2fd").arg(payload.size()).arg(payload.toHex()));
+    QString payloadReadable = payload.toHex();
+    qInfo() << (QString("Touch Payload: %1 fe%2fd").arg(payload.size()).arg(payloadReadable));
     uint16_t* payloadWord = (uint16_t*) payload.data();
     uint16_t x = qFromBigEndian<uint16_t>(payloadWord[1]);
     uint16_t y = qFromBigEndian<uint16_t>(payloadWord[2]);
