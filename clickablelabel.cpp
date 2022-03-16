@@ -20,6 +20,8 @@ ClickableLabel::ClickableLabel(QWidget *parent, Qt::WindowFlags)
 {
     constexpr int wheelyBuffer = 1000/60; //60 times a second send the wheely updates
     startTimer(wheelyBuffer);
+    fpsTime.start();
+    renderTime.start();
 }
 
 void ClickableLabel::mousePressEvent(QMouseEvent* event) {
@@ -62,8 +64,18 @@ void ClickableLabel::timerEvent(QTimerEvent*) {
 }
 
 void ClickableLabel::paintEvent(QPaintEvent*) {
+
+    renderTime.restart();
     QPainter p(this);
     p.drawImage(0,0,toRender);
+    previousRender =
+            ((59.0* previousRender) +
+            (renderTime.nsecsElapsed() / 1000000)) / 60;
+    previousFPS =
+            ((59.0* previousFPS) +
+            (1000000000.0/fpsTime.nsecsElapsed())) / 60;
+    fpsTime.restart();
+
     if(stats) {
         p.setPen(QPen(Qt::red));
         QRectF uh(0,200,250,250);
@@ -72,13 +84,18 @@ void ClickableLabel::paintEvent(QPaintEvent*) {
         double renderNetMbps = ((double)g_NetworkBytesPerSecond/g_scaleFactor) * 8.0 / 1024 /1024;
         double renderNetLps = ((double)g_NetworkLinesPerSecond/g_scaleFactor);
         double renderNetFps = ((double)g_NetworkFramesPerSecond/g_scaleFactor);
-        auto stats = QString("Network:"
-                "\n\tMbps: %3"
-                "\n\tLines: %2"
-                "\n\tFrames:%1")
-                .arg(renderNetFps)
-                .arg(renderNetLps)
-                .arg(renderNetMbps);
+        double resize = ((double)g_ResizeTime/g_scaleFactor);
+        auto stats = QString("Network:         Renderer:"
+                "\n\tFPS:  %1\tFPS:  %4"
+                "\n\tLines:%2\tScale:%6"
+                "\n\tMbps: %3\tDraw: %5")
+                .arg(renderNetFps,8,'f',2)
+                .arg(renderNetLps,8,'f',2)
+                .arg(renderNetMbps,8,'f',2)
+                .arg(previousFPS,8,'f',2)
+                .arg(previousRender,8,'f',2)
+                .arg(resize,8,'f',2);
+
 
         p.drawText(uh, stats);
     }

@@ -7,6 +7,7 @@
 #include <QTimerEvent>
 #include <QPaintEvent>
 #include <QImage>
+#include <QElapsedTimer>
 
 class ClickableLabel : public QLabel
 {
@@ -29,6 +30,12 @@ protected:
 private:
     bool active = false;
     int32_t accumulatedWheelies = 0;
+    QElapsedTimer renderTime;
+    QElapsedTimer fpsTime;
+    double previousFPS = 0;
+    double previousRender = 0;
+
+
 };
 
 #endif // CLICKABLELABEL_H

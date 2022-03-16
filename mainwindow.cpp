@@ -94,6 +94,7 @@ MainWindow::MainWindow(QWidget *parent)
             qInfo() <<  QString("Button: %1, %2, %3, %4").arg(name).arg(textLabel).arg(enableStr).arg(disableStr);
         }
     }
+    m_resizeTime.start();
 //    QVariant index = m_settings.value("mainWindow/stackIndex", QVariant(0));
 //    this->ui->stackedWidget->setCurrentIndex(index.toInt());
 //    restoreGeometry(m_settings.value("mainWindow/geometry").toByteArray());
@@ -140,7 +141,12 @@ void MainWindow::workerFrame()
     auto workToDo = m_worker->getCopy(m_framebuffer);
     if(workToDo) {
         QImage img((const uchar*) m_framebuffer.data(), COLUMNS, LINES, COLUMNS * sizeof(uint16_t),QImage::Format_RGB16);
+        m_resizeTime.restart();
         zone->toRender = img.scaled(w,h,Qt::KeepAspectRatio);
+        m_resizeTimeLast =
+                ((59.0* m_resizeTimeLast) +
+                (m_resizeTime.nsecsElapsed() / 1000000)) / 60;
+        g_ResizeTime = m_resizeTimeLast * g_scaleFactor;
         zone->update();
 //        auto iNew = img.scaled(w,h,Qt::KeepAspectRatio);
 

@@ -15,5 +15,6 @@ extern QAtomicInt g_NetworkBytesPerSecond;
 extern QAtomicInt g_NetworkLinesPerSecond;
 extern QAtomicInt g_NetworkFramesPerSecond;
 extern QAtomicInt g_NetworkFramesTotal;
+extern QAtomicInt g_ResizeTime;
 
 #endif // RDUCONSTANTS_H

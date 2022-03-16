@@ -82,5 +82,7 @@ private:
     QTimer m_touchRearm;
     QElapsedTimer m_buttonDown;
     QPixmap m_lingering;
+    QElapsedTimer m_resizeTime;
+    double m_resizeTimeLast;
 };
 #endif // MAINWINDOW_H
