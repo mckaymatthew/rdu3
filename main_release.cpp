@@ -27,8 +27,8 @@ QString getExecutableDir(void);
 int main(int argc, char *argv[])
 {
     QString dbName = "rdu3";
-    QString appName = "myQtCrasher";
-    QString appVersion = "1.0";
+    QString appName = "rdu3";
+    QString appVersion = "0.0.1";
 
     initializeCrashpad(dbName, appName, appVersion);
 
@@ -65,9 +65,9 @@ bool initializeCrashpad(QString dbName, QString appName, QString appVersion)
     annotations["database"] = dbName.toStdString();     // Required: BugSplat database
     annotations["product"] = appName.toStdString();     // Required: BugSplat appName
     annotations["version"] = appVersion.toStdString();  // Required: BugSplat appVersion
-    annotations["key"] = "Sample key";                  // Optional: BugSplat key field
-    annotations["user"] = "fred@bugsplat.com";          // Optional: BugSplat user email
-    annotations["list_annotations"] = "Sample comment";	// Optional: BugSplat crash description
+    annotations["key"] = "";                  // Optional: BugSplat key field
+    annotations["user"] = "";          // Optional: BugSplat user email
+    annotations["list_annotations"] = "";	// Optional: BugSplat crash description
 
     // Disable crashpad rate limiting so that all crashes have dmp files
     vector<string> arguments;

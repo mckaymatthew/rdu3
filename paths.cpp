@@ -8,7 +8,7 @@ QString Paths::getAttachmentPath() {
     #if defined(Q_OS_MACOS)
         return m_exeDir + "/../attachment.txt";
     #elif defined(Q_OS_WINDOWS)
-        return m_exeDir + "\\..\\attachment.txt";
+        return m_exeDir + "\\attachment.txt";
     #elif defined(Q_OS_LINUX)
         return m_exeDir + "/attachment.txt";
     #else
@@ -20,7 +20,7 @@ QString Paths::getHandlerPath() {
     #if defined(Q_OS_MACOS)
         return m_exeDir + "/../../../crashpad/crashpad_handler";
     #elif defined(Q_OS_WINDOWS)
-        return m_exeDir + "\\..\\crashpad\\crashpad_handler.exe";
+        return m_exeDir + "\\crashpad_handler.exe";
     #elif defined(Q_OS_LINUX)
         return m_exeDir + "/crashpad/crashpad_handler";
     #else
@@ -32,7 +32,7 @@ QString Paths::getReportsPath() {
     #if defined(Q_OS_MACOS)
         return m_exeDir + "/../../../crashpad";
     #elif defined(Q_OS_WINDOWS)
-        return m_exeDir + "\\..\\crashpad";
+        return m_exeDir + "\\crashpad";
     #elif defined(Q_OS_LINUX)
         return m_exeDir + "/crashpad";
     #else
@@ -44,7 +44,7 @@ QString Paths::getMetricsPath() {
     #if defined(Q_OS_MACOS)
         return m_exeDir + "/../../../crashpad";
     #elif defined(Q_OS_WINDOWS)
-        return m_exeDir + "\\..\\crashpad";
+        return m_exeDir + "\\crashpad";
     #elif defined(Q_OS_LINUX)
         return m_exeDir + "/crashpad";
     #else
