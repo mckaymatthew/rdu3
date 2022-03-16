@@ -96,7 +96,12 @@ void RDUWorker::processPendingDatagrams()
             {
                 QMutexLocker locker(&m_copyMux);
                 m_writeBuffer = !m_writeBuffer;
+                if(m_fresh) {
+                    m_notPickedUp++;
+                    qInfo() << QString("Frame not picked up! %1").arg(m_notPickedUp);
+                }
                 m_fresh = true;
+                m_frameCount++;
             }
             emit newFrame();
         }
@@ -115,7 +120,8 @@ bool RDUWorker::getCopy(QByteArray& r)
             r.replace(0,BYTES_PER_FRAME,m_bufferOne);
         }
     } else {
-        qInfo() << "Dropped frame?";
+        m_nothingToPickup++;
+        qInfo() << QString("Nothing to pick up? %1").arg(m_nothingToPickup);
     }
     return newData;
 

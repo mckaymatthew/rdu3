@@ -109,10 +109,11 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 
 # Crashpad rules for Windows
 CONFIG(release, debug|release) {
-    SOURCES += main_release.cpp
     win32 {
+        SOURCES += main_release.cpp
         QMAKE_CXXFLAGS_RELEASE += /Zi
         QMAKE_LFLAGS_RELEASE += /DEBUG:FULL
+
         INCLUDEPATH += $$PWD/crashpad/includes/
         INCLUDEPATH += $$PWD/crashpad/includes/out/Default/gen/
         INCLUDEPATH += $$PWD/crashpad/includes/third_party/mini_chromium/mini_chromium
@@ -129,6 +130,8 @@ CONFIG(release, debug|release) {
 
         QMAKE_POST_LINK += "copy /y $$shell_path($$PWD)\crashpad\bin\win\crashpad_handler.exe $$shell_path($$EXEDIR)"
         QMAKE_POST_LINK += "&& $$shell_path($$PWD)\crashpad\bin\win\symbols.bat $$shell_path($$PWD) $$shell_path($$EXEDIR) rdu3 RDU3 0.0.1 > $$shell_path($$PWD)\crashpad\bin\win\symbols.out 2>&1"
+    } else {
+        SOURCES += main.cpp
     }
 } else {
     SOURCES += main.cpp

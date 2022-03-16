@@ -32,6 +32,10 @@ private:
     uint32_t m_oooPackets;
     uint32_t m_missingPackets;
 
+    uint32_t m_frameCount = 0;
+    uint32_t m_notPickedUp = 0;
+    uint32_t m_nothingToPickup = 0;
+
     QFile* m_logFile;
     QTextStream* m_stream;
     bool m_logCsv;
