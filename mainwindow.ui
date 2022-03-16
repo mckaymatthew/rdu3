@@ -727,6 +727,7 @@
     <addaction name="actionResetSOC"/>
     <addaction name="actionLog_Network_Metadata"/>
     <addaction name="actionGenerate_App_Crash"/>
+    <addaction name="actionStats_for_Nerds"/>
    </widget>
    <widget class="QMenu" name="menuView">
     <property name="title">
@@ -913,6 +914,14 @@
   <action name="actionGenerate_App_Crash">
    <property name="text">
     <string>Generate App Crash</string>
+   </property>
+  </action>
+  <action name="actionStats_for_Nerds">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Stats for Nerds</string>
    </property>
   </action>
  </widget>

@@ -6,6 +6,7 @@
 #include <QFile>
 #include <QElapsedTimer>
 #include <QMutex>
+#include <QTimerEvent>
 
 class RDUWorker : public QObject
 {
@@ -16,6 +17,8 @@ public:
 public slots:
     void startWorker();
     void logPacketData(bool state);
+protected:
+    void timerEvent(QTimerEvent *event) override;
 signals:
     void newFrame();
     void newStats(uint32_t packetCount, uint32_t badPackets, uint32_t oooPackets);
@@ -50,6 +53,13 @@ private:
     uint16_t m_packetIdLast;
 
     QByteArray pkt;
+
+    double m_statsBytes = 0;
+    double m_statsLines = 0;
+
+    double bytesPerSecond_p = 0;
+    double linesPerSecond_p = 0;
+    QElapsedTimer m_fpsCounter;
 };
 
 #endif // RDUWORKER_H

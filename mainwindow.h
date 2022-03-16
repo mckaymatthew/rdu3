@@ -64,6 +64,8 @@ private slots:
 
     void on_actionGenerate_App_Crash_triggered();
 
+    void on_actionStats_for_Nerds_triggered();
+
 protected:
     void closeEvent(QCloseEvent *event) override;
 private:

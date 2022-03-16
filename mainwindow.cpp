@@ -362,3 +362,13 @@ void MainWindow::on_actionGenerate_App_Crash_triggered()
     *uhOh = 0xFEEDBEEF;
 }
 
+
+void MainWindow::on_actionStats_for_Nerds_triggered()
+{
+
+    auto zones = { this->ui->renderZone, this->ui->renderZone_2, this->ui->renderZone_3 };
+    for(auto zone: zones) {
+        zone->stats = this->ui->actionStats_for_Nerds->isChecked();
+    }
+}
+

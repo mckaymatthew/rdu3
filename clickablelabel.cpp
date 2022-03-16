@@ -62,6 +62,24 @@ void ClickableLabel::timerEvent(QTimerEvent*) {
 }
 
 void ClickableLabel::paintEvent(QPaintEvent*) {
-    QPainter painter(this);
-    painter.drawImage(0,0,toRender);
+    QPainter p(this);
+    p.drawImage(0,0,toRender);
+    if(stats) {
+        p.setPen(QPen(Qt::red));
+        QRectF uh(0,200,250,250);
+        p.setFont(QFont("Courier New", 12, QFont::Weight::ExtraBold));
+
+        double renderNetMbps = ((double)g_NetworkBytesPerSecond/g_scaleFactor) * 8.0 / 1024 /1024;
+        double renderNetLps = ((double)g_NetworkLinesPerSecond/g_scaleFactor);
+        double renderNetFps = ((double)g_NetworkFramesPerSecond/g_scaleFactor);
+        auto stats = QString("Network:"
+                "\n\tMbps: %3"
+                "\n\tLines: %2"
+                "\n\tFrames:%1")
+                .arg(renderNetFps)
+                .arg(renderNetLps)
+                .arg(renderNetMbps);
+
+        p.drawText(uh, stats);
+    }
 }

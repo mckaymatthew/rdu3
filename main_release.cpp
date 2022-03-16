@@ -24,6 +24,11 @@ using namespace crashpad;
 bool initializeCrashpad(QString dbName, QString appName, QString appVersion);
 QString getExecutableDir(void);
 
+QAtomicInt g_NetworkBytesPerSecond;
+QAtomicInt g_NetworkLinesPerSecond;
+QAtomicInt g_NetworkFramesPerSecond;
+QAtomicInt g_NetworkFramesTotal;
+
 int main(int argc, char *argv[])
 {
     QString dbName = "rdu3";

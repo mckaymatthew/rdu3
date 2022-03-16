@@ -2,7 +2,10 @@
 #include "RDUConstants.h"
 #include <QNetworkDatagram>
 
-
+namespace {
+constexpr int globalsUpdatePerSecond = 10;
+constexpr int globalsUpdateMs = 1000/10;
+}
 RDUWorker::RDUWorker(QObject *parent)
     : QObject(parent)
     , m_incoming(nullptr)
@@ -32,8 +35,30 @@ void RDUWorker::startWorker()
     } else {
         emit message(QString("Started Network Worker Thread."));
     }
+    m_fpsCounter.start();
+    startTimer(globalsUpdateMs);
+
 }
 
+void RDUWorker::timerEvent(QTimerEvent *event) {
+    double bytesPerSecond = m_statsBytes * globalsUpdatePerSecond;
+    double linesPerSecond = m_statsLines * globalsUpdatePerSecond;
+//    qInfo() << QString("Instant BPS: %1, LPS: %2, Frames: %4").arg(bytesPerSecond).arg(linesPerSecond).arg(g_NetworkFramesTotal);
+    auto oldWeight = globalsUpdatePerSecond-1;
+    auto newWeight = 1;
+    bytesPerSecond =  (((oldWeight* bytesPerSecond_p) + (newWeight* bytesPerSecond)))/globalsUpdatePerSecond;
+    linesPerSecond =  (((oldWeight* linesPerSecond_p) + (newWeight* linesPerSecond)))/globalsUpdatePerSecond;
+//    qInfo() << QString("Averaged BPS: %1, LPS: %2, Frames: %3")
+//               .arg(bytesPerSecond).arg(linesPerSecond).arg(g_NetworkFramesTotal);
+
+    g_NetworkBytesPerSecond = bytesPerSecond * g_scaleFactor;
+    g_NetworkLinesPerSecond = linesPerSecond * g_scaleFactor;
+
+    bytesPerSecond_p = bytesPerSecond;
+    linesPerSecond_p = linesPerSecond;
+    m_statsBytes = 0;
+    m_statsLines = 0;
+};
 void RDUWorker::logPacketData(bool state)
 {
     m_logCsv = state;
@@ -50,6 +75,7 @@ void RDUWorker::processPendingDatagrams()
         if(bytesRead != BYTES_PER_LINE + BYTES_PACKET_OVERHEAD) {
             continue;
         }
+        m_statsBytes = m_statsBytes + bytesRead + 28; //fixed ip + udp header
         m_packetCount++;
         auto header = pkt.data() + 2 ;
         const uint16_t packetCtr = *((uint16_t*)header);
@@ -85,6 +111,7 @@ void RDUWorker::processPendingDatagrams()
             continue;
         }
 
+        m_statsLines++;
         uint32_t scanlineIdx = BYTES_PER_LINE * lineField;
         auto pixelData = pkt.right(BYTES_PER_LINE);
         if(m_writeBuffer) {
@@ -102,6 +129,12 @@ void RDUWorker::processPendingDatagrams()
                 }
                 m_fresh = true;
                 m_frameCount++;
+                g_NetworkFramesPerSecond =
+                        (((9* g_NetworkFramesPerSecond) +
+                        ((1000000000.0/m_fpsCounter.nsecsElapsed()) * g_scaleFactor)))
+                        /globalsUpdatePerSecond;
+                m_fpsCounter.restart();
+                g_NetworkFramesTotal++;
             }
             emit newFrame();
         }
