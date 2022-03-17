@@ -78,14 +78,18 @@ void ClickableLabel::paintEvent(QPaintEvent*) {
 
     if(stats) {
         p.setPen(QPen(Qt::red));
-        QRectF uh(0,200,250,250);
+        auto uh = this->geometry();
+        uh.setX(0);
+        uh.setY(uh.height()-75);
+//        QPoint uh(10,10);
+//        QRectF uh(0,200,400,400);
         p.setFont(QFont("Courier New", 12, QFont::Weight::ExtraBold));
 
         double renderNetMbps = ((double)g_NetworkBytesPerSecond/g_scaleFactor) * 8.0 / 1024 /1024;
         double renderNetLps = ((double)g_NetworkLinesPerSecond/g_scaleFactor);
         double renderNetFps = ((double)g_NetworkFramesPerSecond/g_scaleFactor);
         double resize = ((double)g_ResizeTime/g_scaleFactor);
-        auto stats = QString("Network:         Renderer:"
+        auto stats = QString("Network:        Renderer:"
                 "\n\tFPS:  %1\tFPS:  %4"
                 "\n\tLines:%2\tScale:%6"
                 "\n\tMbps: %3\tDraw: %5")
