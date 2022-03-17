@@ -20,6 +20,7 @@ signals:
     void touch(QPoint l);
     void release();
     void wheely(int clicks);
+    void resized(QSize s);
 protected:
     void mousePressEvent(QMouseEvent* event) override;
     void mouseMoveEvent(QMouseEvent* event) override;
@@ -27,6 +28,7 @@ protected:
     void wheelEvent(QWheelEvent *event) override;
     void timerEvent(QTimerEvent *event) override;
     void paintEvent(QPaintEvent *event) override;
+    void resizeEvent(QResizeEvent *event) override;
 private:
     bool active = false;
     int32_t accumulatedWheelies = 0;

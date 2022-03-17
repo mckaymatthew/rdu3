@@ -20,6 +20,7 @@
 #include "csrmap.h"
 #include <QSettings>
 #include "clickablelabel.h"
+#include "scaler.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -39,6 +40,7 @@ public slots:
     void injectTouch(QPoint l);
     void injectTouchRelease();
 private slots:
+    void scalerFrame();
     void workerFrame();
     void tuneMainDial(int x);
     void on_actionInhibit_Transmit_triggered();
@@ -76,7 +78,9 @@ private:
     QSettings m_settings;
     QThread* m_workerThread;
     RDUWorker* m_worker;
+    scaler* m_scaler;
     RDUController m_controller;
+    QImage m_framebufferImage;
     QByteArray m_framebuffer;
     bool inhibit{false};
     QTimer m_touchRearm;

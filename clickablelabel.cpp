@@ -63,6 +63,10 @@ void ClickableLabel::timerEvent(QTimerEvent*) {
     }
 }
 
+void ClickableLabel::resizeEvent(QResizeEvent *event) {
+    emit resized(event->size());
+}
+
 void ClickableLabel::paintEvent(QPaintEvent*) {
 
     renderTime.restart();
@@ -89,16 +93,16 @@ void ClickableLabel::paintEvent(QPaintEvent*) {
         double renderNetLps = ((double)g_NetworkLinesPerSecond/g_scaleFactor);
         double renderNetFps = ((double)g_NetworkFramesPerSecond/g_scaleFactor);
         double resize = ((double)g_ResizeTime/g_scaleFactor);
-        auto stats = QString("Network:        Renderer:"
-                "\n\tFPS:  %1\tFPS:  %4"
-                "\n\tLines:%2\tScale:%6"
-                "\n\tMbps: %3\tDraw: %5")
+        auto stats = QString("Network:       Renderer:"
+                "\nFPS:  %1\tFPS:  %4"
+                "\nLines:%2\tScale:%6"
+                "\nMbps: %3\tDraw: %5")
                 .arg(renderNetFps,8,'f',2)
                 .arg(renderNetLps,8,'f',2)
                 .arg(renderNetMbps,8,'f',2)
-                .arg(previousFPS,8,'f',2)
-                .arg(previousRender,8,'f',2)
-                .arg(resize,8,'f',2);
+                .arg(previousFPS,5,'f',2)
+                .arg(previousRender,5,'f',2)
+                .arg(resize,5,'f',2);
 
 
         p.drawText(uh, stats);

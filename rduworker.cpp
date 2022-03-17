@@ -128,14 +128,14 @@ void RDUWorker::processPendingDatagrams()
                     qInfo() << QString("Frame not picked up! %1").arg(m_notPickedUp);
                 }
                 m_fresh = true;
-                m_frameCount++;
-                g_NetworkFramesPerSecond =
-                        (((9* g_NetworkFramesPerSecond) +
-                        ((1000000000.0/m_fpsCounter.nsecsElapsed()) * g_scaleFactor)))
-                        /globalsUpdatePerSecond;
-                m_fpsCounter.restart();
-                g_NetworkFramesTotal++;
             }
+            m_frameCount++;
+            g_NetworkFramesPerSecond =
+                    (((9* g_NetworkFramesPerSecond) +
+                    ((1000000000.0/m_fpsCounter.nsecsElapsed()) * g_scaleFactor)))
+                    /globalsUpdatePerSecond;
+            m_fpsCounter.restart();
+            g_NetworkFramesTotal++;
             emit newFrame();
         }
     }
