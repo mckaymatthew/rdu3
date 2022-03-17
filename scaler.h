@@ -21,6 +21,7 @@ public slots:
 signals:
     void newFrame();
 private:
+    void nonallocResize(QImage* in, QImage& out);
     uint32_t m_notPickedUp = 0;
     uint32_t m_nothingToPickup = 0;
     RDUWorker* m_worker;
@@ -34,6 +35,7 @@ private:
     QImage m_bufferTwo;
     QElapsedTimer m_resizeTime;
     double m_resizeTimeLast = 0;
+
 };
 
 #endif // SCALER_H
