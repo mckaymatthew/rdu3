@@ -29,7 +29,7 @@ private:
     bool m_writeBuffer = false;
     QMutex m_copyMux;
     QByteArray m_framebuffer;
-    QImage m_frameBufferImage;
+    QImage* m_frameBufferImage = nullptr;
     QImage m_bufferOne;
     QImage m_bufferTwo;
     QElapsedTimer m_resizeTime;

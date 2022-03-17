@@ -18,13 +18,14 @@ void scaler::newWork() {
     auto workToDo = m_worker->getCopy(m_framebuffer);
     if(workToDo) {
         m_resizeTime.restart();
-
-        QImage img((const uchar*) m_framebuffer.data(), COLUMNS, LINES, COLUMNS * sizeof(uint16_t),QImage::Format_RGB16);
-
+        if(m_frameBufferImage == nullptr) {
+            m_frameBufferImage = new QImage((const uchar*) m_framebuffer.data(), COLUMNS, LINES, COLUMNS * sizeof(uint16_t),QImage::Format_RGB16);
+        }
+        //            QImage img((const uchar*) m_framebuffer.data(), COLUMNS, LINES, COLUMNS * sizeof(uint16_t),QImage::Format_RGB16);
         if(m_writeBuffer) {
-            m_bufferOne = img.scaled(m_s.width(),m_s.height(),Qt::KeepAspectRatio);
+            m_bufferOne = m_frameBufferImage->scaled(m_s.width(),m_s.height(),Qt::KeepAspectRatio);
         } else {
-            m_bufferTwo = img.scaled(m_s.width(),m_s.height(),Qt::KeepAspectRatio);
+            m_bufferTwo = m_frameBufferImage->scaled(m_s.width(),m_s.height(),Qt::KeepAspectRatio);
         }
         m_resizeTimeLast =
                 ((59.0* m_resizeTimeLast) +
