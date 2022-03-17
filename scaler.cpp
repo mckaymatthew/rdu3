@@ -24,18 +24,23 @@ void scaler::resized(QSize s) {
 void scaler::nonallocResize(QImage* in, QImage& out) {
 
     QTransform wm = QTransform::fromScale((qreal)m_s.width() / COLUMNS, (qreal)m_s.height() / LINES);
-    QTransform mat = in->trueMatrix(wm, COLUMNS, LINES);
+    QTransform mat = QImage::trueMatrix(wm, COLUMNS, LINES);
     auto hd = qRound(qAbs(mat.m22()) * m_s.height());
     auto wd = qRound(qAbs(mat.m11()) * m_s.width());
     auto outSize = out.size();
     if(wd != outSize.width() || hd != outSize.height()) {
-        qInfo() << "Out image wrong size, reconstructing";
+        qInfo() << QString("Out image wrong size, reconstructing Was (%1,%2) -> (%3,%4)")
+                   .arg(outSize.width())
+                   .arg(outSize.height())
+                   .arg(wd)
+                   .arg(hd);
         out = QImage(wd, hd, in->format());
     }
 
     QPainter p(&out);
     p.setTransform(mat);
     p.drawImage(QPoint(0, 0), *in);
+
     return;
 
 }

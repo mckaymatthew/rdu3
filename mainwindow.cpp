@@ -43,8 +43,9 @@ MainWindow::MainWindow(QWidget *parent)
     connect(&m_controller, &RDUController::notifyUserOfState, [this](QString msg){this->ui->stateLabel->setText(msg);});
     connect(&m_controller, &RDUController::RDUNotReady, [this](){ this->drawError();});
     connect(m_worker, &RDUWorker::message, [](QString msg){qInfo() << msg;});
-//    connect(m_worker, &RDUWorker::newFrame, this, &MainWindow::workerFrame);
-    connect(m_worker, &RDUWorker::newFrame, m_scaler, &scaler::newWork);
+        connect(m_worker, &RDUWorker::newFrame, this, &MainWindow::workerFramePassthrough);
+    //    connect(m_worker, &RDUWorker::newFrame, this, &MainWindow::workerFrame);
+//    connect(m_worker, &RDUWorker::newFrame, m_scaler, &scaler::newWork);
     connect(m_scaler,&scaler::newFrame, this, &MainWindow::scalerFrame);
     connect(this, &MainWindow::logCsv, m_worker, &RDUWorker::logPacketData);
     scalerThread->start();
@@ -146,6 +147,17 @@ void MainWindow::scalerFrame() {
         zone->toRender = m_framebufferImage;
         zone->update();
     }
+}
+
+void MainWindow::workerFramePassthrough() {
+
+    auto zone = whichLabel();
+    auto workToDo = m_worker->getCopy(m_framebuffer);
+    if(workToDo) {
+        zone->toRender = QImage((const uchar*) m_framebuffer.data(), COLUMNS, LINES, COLUMNS * sizeof(uint16_t),QImage::Format_RGB16);
+        zone->update();
+    }
+
 }
 void MainWindow::workerFrame()
 {

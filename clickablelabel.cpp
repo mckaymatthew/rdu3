@@ -68,10 +68,26 @@ void ClickableLabel::resizeEvent(QResizeEvent *event) {
 }
 
 void ClickableLabel::paintEvent(QPaintEvent*) {
-
+    constexpr bool scaleHere = true;
     renderTime.restart();
+
+
+    QSize newSize(COLUMNS, LINES);
+    newSize.scale(size(),Qt::KeepAspectRatio);
+    newSize.rwidth() = qMax(newSize.width(), 1);
+    newSize.rheight() = qMax(newSize.height(), 1);
+
     QPainter p(this);
-    p.drawImage(0,0,toRender);
+    if(scaleHere) {
+        QTransform wm = QTransform::fromScale((qreal)newSize.width() / COLUMNS, (qreal)newSize.height() / LINES);
+        QTransform mat = QImage::trueMatrix(wm, COLUMNS, LINES);
+        auto hd = qRound(qAbs(mat.m22()) * size().height());
+        auto wd = qRound(qAbs(mat.m11()) * size().width());
+        p.setTransform(mat);
+        p.drawImage(QPoint(0, 0), this->toRender);
+    } else {
+        p.drawImage(0,0,toRender);
+    }
     previousRender =
             ((59.0* previousRender) +
             (renderTime.nsecsElapsed() / 1000000)) / 60;
@@ -84,7 +100,7 @@ void ClickableLabel::paintEvent(QPaintEvent*) {
         p.setPen(QPen(Qt::red));
         auto uh = this->geometry();
         uh.setX(0);
-        uh.setY(uh.height()-75);
+        uh.setY(50);
 //        QPoint uh(10,10);
 //        QRectF uh(0,200,400,400);
         p.setFont(QFont("Courier New", 12, QFont::Weight::ExtraBold));

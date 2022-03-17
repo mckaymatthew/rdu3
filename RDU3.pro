@@ -39,7 +39,6 @@ SOURCES += \
     qmdnsengine/src/src/server.cpp \
     qmdnsengine/src/src/service.cpp \
     rducontroller.cpp \
-    rduwindow.cpp \
     rduworker.cpp
 
 HEADERS += \
@@ -88,13 +87,11 @@ HEADERS += \
     qmdnsengine/src/src/server_p.h \
     qmdnsengine/src/src/service_p.h \
     rducontroller.h \
-    rduwindow.h \
     rduworker.h
 
 FORMS += \
     formtest.ui \
-    mainwindow.ui \
-    rduwindow.ui
+    mainwindow.ui
 
 INCLUDEPATH += $$PWD/qMDNS/src/
 INCLUDEPATH += $$PWD/nanopb

@@ -1,5 +1,4 @@
 #include "mainwindow.h"
-#include "rduwindow.h"
 #include "RDUConstants.h"
 
 #include <QApplication>

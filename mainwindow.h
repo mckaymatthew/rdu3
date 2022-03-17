@@ -42,6 +42,7 @@ public slots:
 private slots:
     void scalerFrame();
     void workerFrame();
+    void workerFramePassthrough();
     void tuneMainDial(int x);
     void on_actionInhibit_Transmit_triggered();
     void on_actionEnable_Transmit_triggered();
