@@ -17,9 +17,8 @@
 #include "rduworker.h"
 #include "rducontroller.h"
 #include <QThread>
-#include "csrmap.h"
 #include <QSettings>
-#include "clickablelabel.h"
+#include "renderlabel.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -53,7 +52,7 @@ private slots:
     void frontPanelButton_down(QString name, QByteArray d);
     void frontPanelButton_up(QString name, QByteArray d);
 
-    ClickableLabel* whichLabel();
+    RenderLabel* whichLabel();
 
     void on_actionFull_triggered();
 

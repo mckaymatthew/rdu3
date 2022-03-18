@@ -1,7 +1,7 @@
 #include "rducontroller.h"
 #include "pb_encode.h"
 #include "pb_decode.h"
-#include "csrmap.h"
+#include "RDUConstants.h"
 
 RDUController::RDUController(QObject *parent)
     : QObject(parent)
@@ -141,7 +141,7 @@ RDUController::state RDUController::ConnectRemote_Wait() {
 RDUController::state RDUController::DisableClock() {
     emit notifyUserOfState(QString("Stop FPGA"));
     qInfo() << ("LCD Clock Inhibit.");
-    writeWord(CSRMap::get().CLK_GATE,0);
+    writeWord(CLK_GATE,0);
     return RDUController::state::RDU_DisableClock_Wait;
 }
 RDUController::state RDUController::SetupHostData() {
@@ -155,13 +155,13 @@ RDUController::state RDUController::SetupHostData() {
 RDUController::state RDUController::SetFrameRate() {
     emit notifyUserOfState(QString("Set FPGA FPS"));
     qInfo() << (QString("Set FPS Divisor %1.").arg(divisor));
-    writeWord(CSRMap::get().FPS_DIVISOR,divisor);
+    writeWord(FPS_DIVISOR,divisor);
     return RDUController::state::RDU_SetFrameRate_Wait;
 }
 RDUController::state RDUController::EnableClock() {
     emit notifyUserOfState(QString("Activate FPGA Transmit"));
     qInfo() << ("LCD Clock Enable.");
-    writeWord(CSRMap::get().CLK_GATE,1);
+    writeWord(CLK_GATE,1);
     return RDUController::state::RDU_EnableClock_Wait;
 }
 RDUController::state RDUController::Connected() {
@@ -212,7 +212,7 @@ RDUController::state RDUController::SpecialWaitAck(state waiting, state success)
         qInfo() << (QString("Ack timed out, was at %1. Waiting: %2, Success %3").arg(timeInState.elapsed()).arg(waiting).arg(success));
         return RDUController::state::RDU_ErrorState;
     } else if(haveAck) {
-        qInfo() << (QString("Got ack, was at %1. Waiting: %2, Success %3").arg(timeInState.elapsed()).arg(waiting).arg(success));
+//        qInfo() << (QString("Got ack, was at %1. Waiting: %2, Success %3").arg(timeInState.elapsed()).arg(waiting).arg(success));
         return success;
     } else {
         return waiting;
@@ -251,7 +251,8 @@ void RDUController::readyRead() {
                     }
                     if(msg_resp.which_payload == Response_lrxd_tag) {
                         QByteArray lrxd((char *)msg_resp.payload.lrxd.data.bytes, msg_resp.payload.lrxd.data.size);
-                        qInfo() << (QString("Got LRXD Bytes: %1 %2").arg(lrxd.size()).arg(QString(lrxd.toHex())));
+                        m_lrxd_decoder.newData(lrxd);
+//                        qInfo() << (QString("Got LRXD Bytes: %1 %2").arg(lrxd.size()).arg(QString(lrxd.toHex())));
                     }
                     if(msg_resp.which_payload == Response_ltxd_tag) {
                         QByteArray ltxd((char *)msg_resp.payload.ltxd.data.bytes, msg_resp.payload.ltxd.data.size);
@@ -303,13 +304,13 @@ void RDUController::writeWord(uint32_t addr, uint32_t data) {
 void RDUController::setFrameDivisor(uint8_t ndivisior) {
     this->divisor = ndivisior;
     if(socket.isValid()) {
-        writeWord(CSRMap::get().FPS_DIVISOR,ndivisior);
+        writeWord(FPS_DIVISOR,ndivisior);
     }
 }
 
 void RDUController::spinMainDial(int ticks) {
     m_dial_offset = m_dial_offset + ticks;
     if(socket.isValid()) {
-        writeWord(CSRMap::get().MAIN_DAIL_OFFSET,m_dial_offset);
+        writeWord(MAIN_DAIL_OFFSET,m_dial_offset);
     }
 }

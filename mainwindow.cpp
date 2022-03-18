@@ -26,12 +26,6 @@ MainWindow::MainWindow(QWidget *parent)
 {
 
     ui->setupUi(this);
-
-    if(CSRMap::get().updated) {
-        qInfo() << (QString("Updated CSR Mappings from file."));
-        qInfo() << (QString("CLK GATE: 0x%1.").arg(CSRMap::get().CLK_GATE,8,16));
-        qInfo() << (QString("CPU Reset: 0x%1.").arg(CSRMap::get().CPU_RESET,8,16));
-    }
     QThread::currentThread()->setObjectName("GUI Thread");
 
     m_workerThread = new QThread();
@@ -62,9 +56,9 @@ MainWindow::MainWindow(QWidget *parent)
 
     auto zones = { this->ui->renderZone, this->ui->renderZone_2, this->ui->renderZone_3 };
     for(auto zone: zones) {
-        connect(zone, &ClickableLabel::touch, this, &MainWindow::injectTouch);
-        connect(zone, &ClickableLabel::release, this, &MainWindow::injectTouchRelease);
-        connect(zone, &ClickableLabel::wheely, this, &MainWindow::tuneMainDial);
+        connect(zone, &RenderLabel::touch, this, &MainWindow::injectTouch);
+        connect(zone, &RenderLabel::release, this, &MainWindow::injectTouchRelease);
+        connect(zone, &RenderLabel::wheely, this, &MainWindow::tuneMainDial);
         zone->setAutoFillBackground(false);
         zone->setAttribute(Qt::WA_NoSystemBackground, true);
     }
@@ -123,7 +117,7 @@ void MainWindow::drawError(){
 }
 MainWindow::~MainWindow()
 {
-    m_controller.writeWord(CSRMap::get().CLK_GATE,0);
+    m_controller.writeWord(CLK_GATE,0);
 
     m_workerThread->quit();
     m_workerThread->wait();
@@ -141,7 +135,7 @@ void MainWindow::workerFramePassthrough(QByteArray* f) {
     zone->imageBacking = f;
     if(zone->imageBacking != nullptr) {
         zone->toRender = QImage((const uchar*) f->data(), COLUMNS, LINES, COLUMNS * sizeof(uint16_t),QImage::Format_RGB16);
-        zone->update();
+        zone->repaint();
     }
 
 }
@@ -153,7 +147,7 @@ void MainWindow::closeEvent(QCloseEvent *event)
     settings.setValue("mainWindow/geometry", saveGeometry());
     settings.setValue("mainWindow/stackIndex", this->ui->stackedWidget->currentIndex());
 
-    m_controller.writeWord(CSRMap::get().CLK_GATE,0);
+    m_controller.writeWord(CLK_GATE,0);
     QMainWindow::closeEvent(event);
 }
 
@@ -161,28 +155,28 @@ void MainWindow::on_actionInhibit_Transmit_triggered()
 {
     this->ui->lastActionLabel->setText(QString("Debug Clk Inhibit"));
     qInfo() << "Debug: Inhibit Tx.";
-    m_controller.writeWord(CSRMap::get().CLK_GATE,0);
+    m_controller.writeWord(CLK_GATE,0);
 }
 
 void MainWindow::on_actionEnable_Transmit_triggered()
 {
     this->ui->lastActionLabel->setText(QString("Debug Clk Enable"));
     qInfo() << ("Debug: Enable Tx.");
-    m_controller.writeWord(CSRMap::get().CLK_GATE,1);
+    m_controller.writeWord(CLK_GATE,1);
 }
 
 void MainWindow::on_actionResetSOC_triggered()
 {
     this->ui->lastActionLabel->setText(QString("Rest CPU"));
     qInfo() << ("Debug: Rest SOC.");
-    m_controller.writeWord(CSRMap::get().CPU_RESET,1);
+    m_controller.writeWord(CPU_RESET,1);
 }
 
 void MainWindow::on_actionHaltSOC_triggered()
 {
     this->ui->lastActionLabel->setText(QString("Halt CPU"));
     qInfo() << ("Debug: Halt SOC.");
-    m_controller.writeWord(CSRMap::get().CPU_RESET+1,9); //unaligned write causes CPU to fault
+    m_controller.writeWord(CPU_RESET+1,9); //unaligned write causes CPU to fault
 }
 
 void MainWindow::on_actionLog_Network_Metadata_toggled(bool arg1)
@@ -280,7 +274,7 @@ void MainWindow::tuneMainDial(int x) {
     qInfo() << (QString("Spin main dial, request %1.").arg(x));
     this->m_controller.spinMainDial(x);
 }
-ClickableLabel* MainWindow::whichLabel() {
+RenderLabel* MainWindow::whichLabel() {
     if(this->ui->renderZone->isVisible()) {
         return this->ui->renderZone;
     }

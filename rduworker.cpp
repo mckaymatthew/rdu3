@@ -8,15 +8,6 @@ constexpr int globalsUpdateMs = 1000/10;
 }
 RDUWorker::RDUWorker(QObject *parent)
     : QObject(parent)
-    , m_incoming(nullptr)
-    , m_packetCount(0)
-    , m_oooPackets(0)
-    , m_badPackets(0)
-    , m_logFile(nullptr)
-    , m_stream(nullptr)
-    , m_logCsv(false)
-    , m_framesStart()
-    , m_packetIdLast(0)
 {
     for(int i = 0; i < 10; i++) {
         m_buffsAvail.enqueue(new QByteArray(BYTES_PER_FRAME,'\0'));
@@ -37,6 +28,7 @@ void RDUWorker::startWorker()
     }
     m_fpsCounter.start();
     startTimer(globalsUpdateMs);
+    pkt.resize(BYTES_PER_LINE + BYTES_PACKET_OVERHEAD);
 
 }
 
@@ -69,71 +61,69 @@ void RDUWorker::buffDispose(QByteArray* d) {
         m_buffsAvail.enqueue(d);
     }
 }
+void RDUWorker::csvLog(uint16_t line, uint16_t packet) {
+    if(m_logCsv) {
+        if(!m_stream) {
+            m_logFile = new QFile("log.csv",this);
+            auto openRet = m_logFile->open(QIODevice::ReadWrite | QIODevice::Truncate);
+            if(openRet) {
+                emit message(QString("Open Log CSV."));
+                m_stream = new QTextStream(m_logFile);
+                *m_stream << "Packet,InternalCtr,Time,LineNumber\n";
+            }
+        }
+        if(m_stream) {
+            auto time = m_framesStart.nsecsElapsed();
+            *m_stream << QString("%1,%4,%2,%3\n").arg(g_packetsTotal).arg(time).arg(line).arg(packet);
+        }
+    }
+}
 void RDUWorker::processPendingDatagrams()
 {
-    pkt.resize(BYTES_PER_LINE + BYTES_PACKET_OVERHEAD);
     while (true) { //hasPendingDatagrams() is expensive on Windows? Just use return value of read
         auto bytesRead = m_incoming->readDatagram(pkt.data(), pkt.size(),nullptr,nullptr);
         if (bytesRead == -1) {
             return;
         }
-        if(bytesRead != BYTES_PER_LINE + BYTES_PACKET_OVERHEAD) {
+        g_packetsTotal++;
+        const bool packetWrongSize = bytesRead != BYTES_PER_LINE + BYTES_PACKET_OVERHEAD;
+        if(packetWrongSize) {
+            g_packetsRejected++;
             continue;
         }
         m_statsBytes = m_statsBytes + bytesRead + 28; //fixed ip + udp header
-        m_packetCount++;
         auto header = pkt.data() + 2 ;
         const uint16_t packetCtr = *((uint16_t*)header);
         const uint16_t lineField = *((uint16_t*)header+1);
-
-        if(m_logCsv) {
-            if(!m_stream) {
-                m_logFile = new QFile("log.csv",this);
-                auto openRet = m_logFile->open(QIODevice::ReadWrite | QIODevice::Truncate);
-                if(openRet) {
-                    emit message(QString("Open Log CSV."));
-                    m_stream = new QTextStream(m_logFile);
-                    *m_stream << "Packet,InternalCtr,Time,LineNumber\n";
-                }
-            }
-            if(m_stream) {
-                auto time = m_framesStart.nsecsElapsed();
-                *m_stream << QString("%1,%4,%2,%3\n").arg(m_packetCount).arg(time).arg(lineField).arg(packetCtr);
-            }
-        }
+        const uint32_t scanlineIdx = BYTES_PER_LINE * lineField;
 
         const bool oooPacket = packetCtr < m_packetIdLast;
+        const bool badLine = lineField > LINES;
+        const bool endOfFrame = lineField == LINES-1;
+        const bool currentBuffValid = m_currentBuff != nullptr;
+        csvLog(lineField,packetCtr);
         m_packetIdLast = packetCtr;
         if(oooPacket) {
-            m_oooPackets++;
             qInfo() << QString("OOO packet %1, %2").arg(packetCtr).arg(m_packetIdLast);
-//            continue;
         }
 
-        if(lineField > LINES) {
-            m_badPackets++;
+        if(badLine) {
+            g_packetsRejected++;
             qInfo() << QString("Bad packet %1").arg(lineField);
             continue;
         }
-
         m_statsLines++;
-        uint32_t scanlineIdx = BYTES_PER_LINE * lineField;
         auto pixelData = pkt.right(BYTES_PER_LINE);
-        if(m_currentBuff != nullptr) {
+        if(currentBuffValid) {
             m_currentBuff->replace(scanlineIdx,BYTES_PER_LINE,pixelData);
         }
-        if(lineField == LINES-1) {
-            if(m_currentBuff != nullptr) {
+        if(endOfFrame) {
+            if(currentBuffValid) {
                 emit newFrame(m_currentBuff);
             } else {
-                qInfo() << QString("Frame lost to eternity");
+                g_FramesLostNoBuffer++;
             }
-            if(!m_buffsAvail.isEmpty()) {
-                m_currentBuff = m_buffsAvail.dequeue();
-            } else {
-                m_currentBuff = nullptr;
-            }
-            m_frameCount++;
+            m_currentBuff = !m_buffsAvail.isEmpty() ? m_buffsAvail.dequeue() : nullptr;
             g_NetworkFramesPerSecond =
                     (((9* g_NetworkFramesPerSecond) +
                     ((1000000000.0/m_fpsCounter.nsecsElapsed()) * g_scaleFactor)))

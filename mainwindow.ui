@@ -101,7 +101,7 @@
             <number>0</number>
            </property>
            <item row="0" column="1">
-            <widget class="ClickableLabel" name="renderZone">
+            <widget class="RenderLabel" name="renderZone">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -485,7 +485,7 @@
          <number>0</number>
         </property>
         <item>
-         <widget class="ClickableLabel" name="renderZone_2">
+         <widget class="RenderLabel" name="renderZone_2">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
             <horstretch>0</horstretch>
@@ -591,7 +591,7 @@
          <number>0</number>
         </property>
         <item row="0" column="0">
-         <widget class="ClickableLabel" name="renderZone_3">
+         <widget class="RenderLabel" name="renderZone_3">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
             <horstretch>0</horstretch>
@@ -927,9 +927,9 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>ClickableLabel</class>
+   <class>RenderLabel</class>
    <extends>QLabel</extends>
-   <header>clickablelabel.h</header>
+   <header>renderlabel.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

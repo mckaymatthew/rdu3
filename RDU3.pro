@@ -8,14 +8,13 @@ CONFIG += c++11
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
+    lrxddecoder.cpp \
     paths.cpp \
+    renderlabel.cpp \
     simple.pb.c \
-    clickablelabel.cpp \
-    csrmap.cpp \
 #    ecpprog/ecpprog/ecpprog.c \
 #    ecpprog/ecpprog/jtag_tap.c \
 #    ecpprog/ecpprog/mpsse.c \
-    formtest.cpp \
     ltxddecoder.cpp \
     mainwindow.cpp \
     nanopb/pb_common.c \
@@ -41,15 +40,14 @@ SOURCES += \
     rduworker.cpp
 
 HEADERS += \
+    lrxddecoder.h \
     paths.h \
+    renderlabel.h \
     simple.pb.h \
     RDUConstants.h \
-    clickablelabel.h \
-    csrmap.h \
 #    ecpprog/ecpprog/jtag.h \
 #    ecpprog/ecpprog/lattice_cmds.h \
 #    ecpprog/ecpprog/mpsse.h \
-    formtest.h \
     ltxddecoder.h \
     mainwindow.h \
     nanopb/pb.h \
@@ -88,7 +86,6 @@ HEADERS += \
     rduworker.h
 
 FORMS += \
-    formtest.ui \
     mainwindow.ui
 
 INCLUDEPATH += $$PWD/qMDNS/src/

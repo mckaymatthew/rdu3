@@ -1,12 +1,14 @@
-#include "clickablelabel.h"
+#include "renderlabel.h"
 #include "QMouseEvent"
 #include "RDUConstants.h"
 #include <QPainter>
 
 namespace {
+    //Take the sign of the value, drop the value.
     template <typename T> int sgn(T val) {
         return (T(0) < val) - (val < T(0));
     }
+    //Scale a point (down) from the render size to actual size
     void scale(QPoint& p, QSize area) {
         double yScale = (double)LINES / area.height();
         double xScale = (double)COLUMNS / area.width();
@@ -15,34 +17,36 @@ namespace {
     }
 
 }
-ClickableLabel::ClickableLabel(QWidget *parent, Qt::WindowFlags)
+RenderLabel::RenderLabel(QWidget *parent, Qt::WindowFlags)
     : QLabel(parent)
 {
     constexpr int wheelyBuffer = 1000/60; //60 times a second send the wheely updates
     startTimer(wheelyBuffer);
+    //Start various timers so they're valid when we go to restart them
     fpsTime.start();
     renderTime.start();
+    frameToFrameTime.start();
 }
 
-void ClickableLabel::mousePressEvent(QMouseEvent* event) {
-    active = true;
+void RenderLabel::mousePressEvent(QMouseEvent* event) {
+    active = true; //Record that mouse is held down
     auto initial = event->pos();
     scale(initial, this->size());
     emit touch(initial);
 }
-void ClickableLabel::mouseMoveEvent(QMouseEvent* event) {
-    if(active) {
+void RenderLabel::mouseMoveEvent(QMouseEvent* event) {
+    if(active) { //If mouse is held down
         auto initial = event->pos();
         scale(initial, this->size());
         emit touch(initial);
     }
 }
-void ClickableLabel::mouseReleaseEvent(QMouseEvent*) {
+void RenderLabel::mouseReleaseEvent(QMouseEvent*) {
     active = false;
     emit release();
 }
 
-void ClickableLabel::wheelEvent(QWheelEvent* event) {
+void RenderLabel::wheelEvent(QWheelEvent* event) {
     event->accept();
     QPoint numPixels = event->pixelDelta();
     QPoint numDegrees = event->angleDelta();
@@ -56,38 +60,31 @@ void ClickableLabel::wheelEvent(QWheelEvent* event) {
     }
 }
 
-void ClickableLabel::timerEvent(QTimerEvent*) {
+void RenderLabel::timerEvent(QTimerEvent*) {
     if(accumulatedWheelies != 0) {
         emit wheely(accumulatedWheelies);
         accumulatedWheelies = 0;
     }
 }
 
-void ClickableLabel::resizeEvent(QResizeEvent *event) {
+void RenderLabel::resizeEvent(QResizeEvent *event) {
     emit resized(event->size());
-}
-
-void ClickableLabel::paintEvent(QPaintEvent*) {
-    constexpr bool scaleHere = true;
-    renderTime.restart();
-
-
+    //Calculate new render size.
     QSize newSize(COLUMNS, LINES);
     newSize.scale(size(),Qt::KeepAspectRatio);
-    newSize.rwidth() = qMax(newSize.width(), 1);
-    newSize.rheight() = qMax(newSize.height(), 1);
+    //Calculate the resize transform matrix for later rescaling
+    QTransform wm = QTransform::fromScale((qreal)newSize.width() / COLUMNS, (qreal)newSize.height() / LINES);
+    mat = QImage::trueMatrix(wm, COLUMNS, LINES);
+}
 
+void RenderLabel::paintEvent(QPaintEvent*) {
+    renderTime.restart(); //Timer tracking how long paint takes
+
+    //Draw the frame with the resize transformation
     QPainter p(this);
-    if(scaleHere) {
-        QTransform wm = QTransform::fromScale((qreal)newSize.width() / COLUMNS, (qreal)newSize.height() / LINES);
-        QTransform mat = QImage::trueMatrix(wm, COLUMNS, LINES);
-        auto hd = qRound(qAbs(mat.m22()) * size().height());
-        auto wd = qRound(qAbs(mat.m11()) * size().width());
-        p.setTransform(mat);
-        p.drawImage(QPoint(0, 0), this->toRender);
-    } else {
-        p.drawImage(0,0,toRender);
-    }
+    p.setTransform(mat);
+    p.drawImage(QPoint(0, 0), this->toRender);
+
     previousRender =
             ((59.0* previousRender) +
             (renderTime.nsecsElapsed() / 1000000)) / 60;
@@ -101,24 +98,18 @@ void ClickableLabel::paintEvent(QPaintEvent*) {
         auto uh = this->geometry();
         uh.setX(0);
         uh.setY(50);
-//        QPoint uh(10,10);
-//        QRectF uh(0,200,400,400);
         p.setFont(QFont("Courier New", 12, QFont::Weight::ExtraBold));
 
         double renderNetMbps = ((double)g_NetworkBytesPerSecond/g_scaleFactor) * 8.0 / 1024 /1024;
-        double renderNetLps = ((double)g_NetworkLinesPerSecond/g_scaleFactor);
+//        double renderNetLps = ((double)g_NetworkLinesPerSecond/g_scaleFactor);
         double renderNetFps = ((double)g_NetworkFramesPerSecond/g_scaleFactor);
-        double resize = ((double)g_ResizeTime/g_scaleFactor);
         auto stats = QString("Network:       Renderer:"
-                "\nFPS:  %1\tFPS:  %4"
-                "\nLines:%2\tScale:%6"
-                "\nMbps: %3\tDraw: %5")
+                "\nFPS: %1 FPS: %3"
+                "\nMbps:%2 Draw:%4")
                 .arg(renderNetFps,8,'f',2)
-                .arg(renderNetLps,8,'f',2)
                 .arg(renderNetMbps,8,'f',2)
                 .arg(previousFPS,5,'f',2)
-                .arg(previousRender,5,'f',2)
-                .arg(resize,5,'f',2);
+                .arg(previousRender,5,'f',2);
 
 
         p.drawText(uh, stats);

@@ -8,6 +8,7 @@
 #include <QTcpSocket>
 #include "simple.pb.h"
 #include "ltxddecoder.h"
+#include "lrxddecoder.h"
 #include <qmdnsengine/server.h>
 #include <qmdnsengine/resolver.h>
 #include <QElapsedTimer>
@@ -42,6 +43,7 @@ private:
     int msg_resp_buffer_idx = 0;
     uint8_t divisor = 0;
     LtxdDecoder m_ltxd_decoder;
+    LrxdDecoder m_lrxd_decoder;
     int m_dial_offset = 0;
 
     QMdnsEngine::Server mServer;

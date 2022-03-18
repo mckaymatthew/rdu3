@@ -27,24 +27,15 @@ signals:
 
 private slots:
     void processPendingDatagrams();
+    void csvLog(uint16_t line, uint16_t packet);
 private:
-    QUdpSocket* m_incoming;
-    uint32_t m_packetCount;
-    uint32_t m_badPackets;
-    uint32_t m_oooPackets;
-    uint32_t m_missingPackets;
+    QUdpSocket* m_incoming = nullptr;
 
-    uint32_t m_frameCount = 0;
-    uint32_t m_notPickedUp = 0;
-    uint32_t m_nothingToPickup = 0;
-
-    QFile* m_logFile;
-    QTextStream* m_stream;
-    bool m_logCsv;
-    bool m_fresh;
+    bool m_logCsv = false;
+    QFile* m_logFile = nullptr;
+    QTextStream* m_stream = nullptr;
 
     QElapsedTimer m_framesStart;
-
 
     uint16_t m_packetIdLast;
 
@@ -57,8 +48,8 @@ private:
     double linesPerSecond_p = 0;
     QElapsedTimer m_fpsCounter;
 
-    QQueue<QByteArray* > m_buffsAvail;
-    QByteArray* m_currentBuff;
+    QQueue<QByteArray* > m_buffsAvail = {};
+    QByteArray* m_currentBuff = nullptr;
 };
 
 #endif // RDUWORKER_H
