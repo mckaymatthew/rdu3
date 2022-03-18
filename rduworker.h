@@ -7,20 +7,21 @@
 #include <QElapsedTimer>
 #include <QMutex>
 #include <QTimerEvent>
+#include <QQueue>
 
 class RDUWorker : public QObject
 {
     Q_OBJECT
 public:
     explicit RDUWorker(QObject *parent = nullptr);
-    bool getCopy(QByteArray& r);
 public slots:
     void startWorker();
     void logPacketData(bool state);
+    void buffDispose(QByteArray* d);
 protected:
     void timerEvent(QTimerEvent *event) override;
 signals:
-    void newFrame();
+    void newFrame(QByteArray* frame);
     void newStats(uint32_t packetCount, uint32_t badPackets, uint32_t oooPackets);
     void message(QString);
 
@@ -28,8 +29,6 @@ private slots:
     void processPendingDatagrams();
 private:
     QUdpSocket* m_incoming;
-    QByteArray m_bufferOne;
-    QByteArray m_bufferTwo;
     uint32_t m_packetCount;
     uint32_t m_badPackets;
     uint32_t m_oooPackets;
@@ -46,9 +45,6 @@ private:
 
     QElapsedTimer m_framesStart;
 
-    bool m_writeBuffer;
-
-    QMutex m_copyMux;
 
     uint16_t m_packetIdLast;
 
@@ -60,6 +56,9 @@ private:
     double bytesPerSecond_p = 0;
     double linesPerSecond_p = 0;
     QElapsedTimer m_fpsCounter;
+
+    QQueue<QByteArray* > m_buffsAvail;
+    QByteArray* m_currentBuff;
 };
 
 #endif // RDUWORKER_H

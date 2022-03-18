@@ -9,7 +9,6 @@ CONFIG += c++11
 
 SOURCES += \
     paths.cpp \
-    scaler.cpp \
     simple.pb.c \
     clickablelabel.cpp \
     csrmap.cpp \
@@ -43,7 +42,6 @@ SOURCES += \
 
 HEADERS += \
     paths.h \
-    scaler.h \
     simple.pb.h \
     RDUConstants.h \
     clickablelabel.h \

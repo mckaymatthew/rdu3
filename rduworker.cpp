@@ -9,8 +9,6 @@ constexpr int globalsUpdateMs = 1000/10;
 RDUWorker::RDUWorker(QObject *parent)
     : QObject(parent)
     , m_incoming(nullptr)
-    , m_bufferOne(BYTES_PER_FRAME,'\0')
-    , m_bufferTwo(BYTES_PER_FRAME,'\0')
     , m_packetCount(0)
     , m_oooPackets(0)
     , m_badPackets(0)
@@ -18,10 +16,12 @@ RDUWorker::RDUWorker(QObject *parent)
     , m_stream(nullptr)
     , m_logCsv(false)
     , m_framesStart()
-    , m_writeBuffer(false)
     , m_packetIdLast(0)
 {
-
+    for(int i = 0; i < 10; i++) {
+        m_buffsAvail.enqueue(new QByteArray(BYTES_PER_FRAME,'\0'));
+    }
+    m_currentBuff = m_buffsAvail.dequeue();
 }
 
 void RDUWorker::startWorker()
@@ -64,6 +64,11 @@ void RDUWorker::logPacketData(bool state)
     m_logCsv = state;
 }
 
+void RDUWorker::buffDispose(QByteArray* d) {
+    if(d != nullptr) {
+        m_buffsAvail.enqueue(d);
+    }
+}
 void RDUWorker::processPendingDatagrams()
 {
     pkt.resize(BYTES_PER_LINE + BYTES_PACKET_OVERHEAD);
@@ -114,20 +119,19 @@ void RDUWorker::processPendingDatagrams()
         m_statsLines++;
         uint32_t scanlineIdx = BYTES_PER_LINE * lineField;
         auto pixelData = pkt.right(BYTES_PER_LINE);
-        if(m_writeBuffer) {
-            m_bufferOne.replace(scanlineIdx,BYTES_PER_LINE,pixelData);
-        } else {
-            m_bufferTwo.replace(scanlineIdx,BYTES_PER_LINE,pixelData);
+        if(m_currentBuff != nullptr) {
+            m_currentBuff->replace(scanlineIdx,BYTES_PER_LINE,pixelData);
         }
         if(lineField == LINES-1) {
-            {
-                QMutexLocker locker(&m_copyMux);
-                m_writeBuffer = !m_writeBuffer;
-                if(m_fresh) {
-                    m_notPickedUp++;
-                    qInfo() << QString("Frame not picked up! %1").arg(m_notPickedUp);
-                }
-                m_fresh = true;
+            if(m_currentBuff != nullptr) {
+                emit newFrame(m_currentBuff);
+            } else {
+                qInfo() << QString("Frame lost to eternity");
+            }
+            if(!m_buffsAvail.isEmpty()) {
+                m_currentBuff = m_buffsAvail.dequeue();
+            } else {
+                m_currentBuff = nullptr;
             }
             m_frameCount++;
             g_NetworkFramesPerSecond =
@@ -136,27 +140,6 @@ void RDUWorker::processPendingDatagrams()
                     /globalsUpdatePerSecond;
             m_fpsCounter.restart();
             g_NetworkFramesTotal++;
-            emit newFrame();
         }
     }
-}
-
-bool RDUWorker::getCopy(QByteArray& r)
-{
-    QMutexLocker locker(&m_copyMux);
-    const bool newData = m_fresh;
-    m_fresh = false;
-    if(newData) {
-        if(m_writeBuffer) {
-            r.replace(0,BYTES_PER_FRAME,m_bufferTwo);
-        } else {
-            r.replace(0,BYTES_PER_FRAME,m_bufferOne);
-        }
-    } else {
-        m_nothingToPickup++;
-        qInfo() << QString("Nothing to pick up? %1").arg(m_nothingToPickup);
-    }
-    return newData;
-
-
 }

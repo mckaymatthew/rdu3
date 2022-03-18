@@ -22,7 +22,6 @@ MainWindow::MainWindow(QWidget *parent)
     , m_settings("KE0PSL", "RDU3")
     , m_workerThread(nullptr)
     , m_worker(new RDUWorker())
-    , m_scaler(new scaler(m_worker))
     , m_controller()
 {
 
@@ -35,23 +34,16 @@ MainWindow::MainWindow(QWidget *parent)
     }
     QThread::currentThread()->setObjectName("GUI Thread");
 
-    m_scaler->resized(this->ui->renderZone->size());
     m_workerThread = new QThread();
-    auto scalerThread = new QThread();
     m_worker->moveToThread(m_workerThread);
-    m_scaler->moveToThread(scalerThread);
     connect(&m_controller, &RDUController::notifyUserOfState, [this](QString msg){this->ui->stateLabel->setText(msg);});
     connect(&m_controller, &RDUController::RDUNotReady, [this](){ this->drawError();});
     connect(m_worker, &RDUWorker::message, [](QString msg){qInfo() << msg;});
-        connect(m_worker, &RDUWorker::newFrame, this, &MainWindow::workerFramePassthrough);
-    //    connect(m_worker, &RDUWorker::newFrame, this, &MainWindow::workerFrame);
-//    connect(m_worker, &RDUWorker::newFrame, m_scaler, &scaler::newWork);
-    connect(m_scaler,&scaler::newFrame, this, &MainWindow::scalerFrame);
+    connect(m_worker, &RDUWorker::newFrame, this, &MainWindow::workerFramePassthrough);
     connect(this, &MainWindow::logCsv, m_worker, &RDUWorker::logPacketData);
-    scalerThread->start();
+    connect(this, &MainWindow::buffDispose, m_worker, &RDUWorker::buffDispose);
     m_workerThread->start();
     QMetaObject::invokeMethod(m_worker,&RDUWorker::startWorker);
-    QMetaObject::invokeMethod(m_scaler,&scaler::startWorker);
     drawError();
 
 
@@ -73,7 +65,6 @@ MainWindow::MainWindow(QWidget *parent)
         connect(zone, &ClickableLabel::touch, this, &MainWindow::injectTouch);
         connect(zone, &ClickableLabel::release, this, &MainWindow::injectTouchRelease);
         connect(zone, &ClickableLabel::wheely, this, &MainWindow::tuneMainDial);
-        connect(zone, &ClickableLabel::resized, m_scaler, &scaler::resized);
         zone->setAutoFillBackground(false);
         zone->setAttribute(Qt::WA_NoSystemBackground, true);
     }
@@ -139,56 +130,21 @@ MainWindow::~MainWindow()
     delete ui;
     ui = nullptr;
 }
-void MainWindow::scalerFrame() {
-    auto zone = whichLabel();
 
-    auto workToDo = m_scaler->getCopy(m_framebufferImage);
-    if(workToDo) {
-        zone->toRender = m_framebufferImage;
-        zone->update();
+void MainWindow::workerFramePassthrough(QByteArray* f) {
+
+    auto zone = whichLabel();
+    if(zone->imageBacking != nullptr) {
+        emit this->buffDispose(zone->imageBacking);
+        zone->imageBacking = nullptr;
     }
-}
-
-void MainWindow::workerFramePassthrough() {
-
-    auto zone = whichLabel();
-    auto workToDo = m_worker->getCopy(m_framebuffer);
-    if(workToDo) {
-        if(zone->toRender.isNull()) {
-            zone->toRender = QImage((const uchar*) m_framebuffer.data(), COLUMNS, LINES, COLUMNS * sizeof(uint16_t),QImage::Format_RGB16);
-        }
+    zone->imageBacking = f;
+    if(zone->imageBacking != nullptr) {
+        zone->toRender = QImage((const uchar*) f->data(), COLUMNS, LINES, COLUMNS * sizeof(uint16_t),QImage::Format_RGB16);
         zone->update();
     }
 
 }
-void MainWindow::workerFrame()
-{
-    auto zone = whichLabel();
-    int w = zone->width();
-    int h = zone->height();
-
-    auto workToDo = m_worker->getCopy(m_framebuffer);
-    if(workToDo) {
-        QImage img((const uchar*) m_framebuffer.data(), COLUMNS, LINES, COLUMNS * sizeof(uint16_t),QImage::Format_RGB16);
-        m_resizeTime.restart();
-        zone->toRender = img.scaled(w,h,Qt::KeepAspectRatio);
-        m_resizeTimeLast =
-                ((59.0* m_resizeTimeLast) +
-                (m_resizeTime.nsecsElapsed() / 1000000)) / 60;
-        g_ResizeTime = m_resizeTimeLast * g_scaleFactor;
-        zone->update();
-//        auto iNew = img.scaled(w,h,Qt::KeepAspectRatio);
-
-//        if(m_lingering.isNull()) {
-//            m_lingering = QPixmap::fromImage(iNew);
-//        } else {
-//            m_lingering.convertFromImage(iNew);
-//        }
-    //    qInfo() << m_lingering.cacheKey();
-//        zone->setPixmap(m_lingering);
-    }
-}
-
 void MainWindow::closeEvent(QCloseEvent *event)
 {
 

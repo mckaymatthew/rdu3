@@ -15,6 +15,7 @@ class ClickableLabel : public QLabel
 public:
     explicit ClickableLabel(QWidget *parent=nullptr, Qt::WindowFlags f=Qt::WindowFlags());
     QImage toRender;
+    QByteArray* imageBacking = nullptr;
     bool stats = false;
 signals:
     void touch(QPoint l);
