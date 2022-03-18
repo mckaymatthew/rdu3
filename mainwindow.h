@@ -52,6 +52,8 @@ private slots:
 
     void on_actionGenerate_App_Crash_triggered();
 
+    void on_actionOpen_log_file_triggered();
+
 protected:
     void closeEvent(QCloseEvent *event) override;
 private:
@@ -67,5 +69,6 @@ private:
     QElapsedTimer m_buttonDown;
     QList<RenderLabel*> m_zones;
     QList<QAction*> m_fpsActions;
+    QString m_stateLast;
 };
 #endif // MAINWINDOW_H

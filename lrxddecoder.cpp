@@ -24,5 +24,5 @@ void LrxdDecoder::handlePayload(QByteArray payload) {
 void LrxdDecoder::handlePwrLed(QByteArray payload) {
 //    const bool isOff = payload[1] == 0x02;
     const bool isOn = payload[1] == 0x03;
-    qInfo() << QString("LRXD: Power button light: %1").arg(isOn?"On":"Off");
+//    qInfo() << QString("LRXD: Power button light: %1").arg(isOn?"On":"Off");
 }

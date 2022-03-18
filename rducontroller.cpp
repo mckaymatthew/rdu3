@@ -177,7 +177,8 @@ RDUController::state RDUController::Connected() {
 }
 
 RDUController::state RDUController::Ping() {
-    emit notifyUserOfState(QString("Ping IC7300"));
+    //Too chatty to print every ping.
+//    emit notifyUserOfState(QString("Ping IC7300"));
     Request r = Request_init_default;
     r.which_payload = Request_ping_tag;
     r.payload.ping.magic[0] = 0xFE;
@@ -300,14 +301,12 @@ void RDUController::writeWord(uint32_t addr, uint32_t data) {
     r.payload.writeWord.address = addr;
     r.payload.writeWord.data = data;
 
-    qInfo() << (QString("Write 0x%1 to 0x%2.").arg(addr,8,16,QChar('0')).arg(data,8,16,QChar('0')));
+    qDebug() << (QString("Write 0x%1 to 0x%2.").arg(addr,8,16,QChar('0')).arg(data,8,16,QChar('0')));
     writeRequest(r);
 }
 void RDUController::setFrameDivisor(uint8_t ndivisior) {
     this->divisor = ndivisior;
-    if(socket.isValid()) {
-        writeWord(FPS_DIVISOR,ndivisior);
-    }
+    writeWord(FPS_DIVISOR,ndivisior);
 }
 
 void RDUController::spinMainDial(int ticks) {

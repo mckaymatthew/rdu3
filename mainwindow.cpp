@@ -12,6 +12,8 @@
 #include "RDUConstants.h"
 #include <QDateTime>
 #include <QtEndian>
+#include <QDesktopServices>
+#include <QDir>
 
 using namespace Qt;
 using namespace std;
@@ -87,6 +89,8 @@ MainWindow::MainWindow(QWidget *parent)
 //            qInfo() <<  QString("Button: %1, %2, %3, %4").arg(name).arg(textLabel).arg(enableStr).arg(disableStr);
         }
     });
+
+
 
     //There are menu items to select the view style, connect these up here.
     connect(this->ui->actionFull, &QAction::triggered,
@@ -166,9 +170,14 @@ void MainWindow::closeEvent(QCloseEvent *event)
 
 
 void MainWindow::updateAction(QString action) {
+    qInfo() << "Action: " << action;
     this->ui->lastActionLabel->setText(action);
 }
 void MainWindow::updateState(QString state){
+    if(state != m_stateLast) {
+        qInfo() << "State: " <<  state;
+    }
+    m_stateLast = state;
     this->ui->stateLabel->setText(state);
 }
 void MainWindow::action_FPS_triggered(QAction* fps, bool) {
@@ -251,3 +260,12 @@ void MainWindow::on_actionGenerate_App_Crash_triggered()
     uint32_t* uhOh = nullptr;
     *uhOh = 0xFEEDBEEF;
 }
+
+
+void MainWindow::on_actionOpen_log_file_triggered()
+{
+    QString logPath = "file://" +QDir::tempPath() + QDir::separator() + "RDU.txt";
+    qInfo() << QString("Requesting OS to open %1").arg(logPath);
+    QDesktopServices::openUrl(logPath);
+}
+

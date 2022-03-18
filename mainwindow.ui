@@ -716,6 +716,7 @@
     </widget>
     <addaction name="menuFramerate"/>
     <addaction name="actionSave_PNG"/>
+    <addaction name="actionOpen_log_file"/>
    </widget>
    <widget class="QMenu" name="menuDebug">
     <property name="title">
@@ -774,17 +775,6 @@
   <action name="actionResetSOC">
    <property name="text">
     <string>Reset SOC</string>
-   </property>
-  </action>
-  <action name="actionExit_FRONT">
-   <property name="text">
-    <string> Exit</string>
-   </property>
-   <property name="toolTip">
-    <string> Exit</string>
-   </property>
-   <property name="shortcut">
-    <string>Esc</string>
    </property>
   </action>
   <action name="actionLog_Network_Metadata">
@@ -922,6 +912,11 @@
    </property>
    <property name="text">
     <string>Stats for Nerds</string>
+   </property>
+  </action>
+  <action name="actionOpen_log_file">
+   <property name="text">
+    <string>Open log file</string>
    </property>
   </action>
  </widget>
