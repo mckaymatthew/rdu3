@@ -154,7 +154,9 @@ void MainWindow::workerFramePassthrough() {
     auto zone = whichLabel();
     auto workToDo = m_worker->getCopy(m_framebuffer);
     if(workToDo) {
-        zone->toRender = QImage((const uchar*) m_framebuffer.data(), COLUMNS, LINES, COLUMNS * sizeof(uint16_t),QImage::Format_RGB16);
+        if(zone->toRender.isNull()) {
+            zone->toRender = QImage((const uchar*) m_framebuffer.data(), COLUMNS, LINES, COLUMNS * sizeof(uint16_t),QImage::Format_RGB16);
+        }
         zone->update();
     }
 
