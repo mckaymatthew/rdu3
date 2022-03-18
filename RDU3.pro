@@ -11,6 +11,7 @@ SOURCES += \
     lrxddecoder.cpp \
     paths.cpp \
     renderlabel.cpp \
+    serialdecoder.cpp \
     simple.pb.c \
 #    ecpprog/ecpprog/ecpprog.c \
 #    ecpprog/ecpprog/jtag_tap.c \
@@ -43,6 +44,7 @@ HEADERS += \
     lrxddecoder.h \
     paths.h \
     renderlabel.h \
+    serialdecoder.h \
     simple.pb.h \
     RDUConstants.h \
 #    ecpprog/ecpprog/jtag.h \

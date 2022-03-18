@@ -3,20 +3,17 @@
 
 #include <QObject>
 #include <QByteArray>
+#include "serialdecoder.h"
 
-class LrxdDecoder : public QObject
+class LrxdDecoder : public SerialDecoder
 {
     Q_OBJECT
 public:
     explicit LrxdDecoder(QObject *parent = nullptr);
-public slots:
-    void newData(QByteArray);
+protected:
+    void handlePayload(QByteArray) override;
 private:
-    bool searching = true;
-    void processByte(unsigned char byte);
-    void handlePayload();
-    QByteArray payload;
-    void handlePwrLed();
+    void handlePwrLed(QByteArray payload);
 };
 
 #endif // LrxdDecoder_H

@@ -19,6 +19,9 @@
 #include <QThread>
 #include <QSettings>
 #include "renderlabel.h"
+#include "ltxddecoder.h"
+#include "lrxddecoder.h"
+#include <QList>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -33,19 +36,11 @@ public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 signals:
-    void logCsv(bool log);
     void buffDispose(QByteArray* d);
-public slots:
-    void injectTouch(QPoint l);
-    void injectTouchRelease();
 private slots:
     void workerFramePassthrough(QByteArray* f);
-    void tuneMainDial(int x);
-    void on_actionInhibit_Transmit_triggered();
-    void on_actionEnable_Transmit_triggered();
-    void on_actionResetSOC_triggered();
-    void on_actionHaltSOC_triggered();
-    void on_actionLog_Network_Metadata_toggled(bool arg1);
+    void updateAction(QString action);
+    void updateState(QString state);
 
     void action_FPS_triggered(QAction *, bool);
     void on_actionSave_PNG_triggered();
@@ -53,37 +48,24 @@ private slots:
     void frontPanelButton_up(QString name, QByteArray d);
 
     RenderLabel* whichLabel();
-
-    void on_actionFull_triggered();
-
-    void on_actionMinimal_triggered();
-
-    void on_actionScreen_Only_triggered();
-
-    void on_actionExit_FRONT_triggered();
+    void changedViewport(int index, QWidget* active, QList<QWidget*> inactive);
 
     void on_actionGenerate_App_Crash_triggered();
-
-    void on_actionStats_for_Nerds_triggered();
 
 protected:
     void closeEvent(QCloseEvent *event) override;
 private:
     void connectPanelButton(QPushButton* but, RDUController* target, QString onClick, QString onRelease);
-    void drawError();
 
     Ui::MainWindow *ui;
     QSettings m_settings;
     QThread* m_workerThread;
     RDUWorker* m_worker;
     RDUController m_controller;
-    QImage m_framebufferImage;
-    QByteArray m_framebuffer;
-    bool inhibit{false};
-    QTimer m_touchRearm;
+    LtxdDecoder m_ltxd_decoder;
+    LrxdDecoder m_lrxd_decoder;
     QElapsedTimer m_buttonDown;
-    QPixmap m_lingering;
-    QElapsedTimer m_resizeTime;
-    double m_resizeTimeLast;
+    QList<RenderLabel*> m_zones;
+    QList<QAction*> m_fpsActions;
 };
 #endif // MAINWINDOW_H

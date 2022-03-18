@@ -7,11 +7,10 @@
 #include <QByteArray>
 #include <QTcpSocket>
 #include "simple.pb.h"
-#include "ltxddecoder.h"
-#include "lrxddecoder.h"
 #include <qmdnsengine/server.h>
 #include <qmdnsengine/resolver.h>
 #include <QElapsedTimer>
+#include <QPoint>
 
 
 class RDUController : public QObject
@@ -20,21 +19,29 @@ class RDUController : public QObject
 public:
     explicit RDUController(QObject *parent = nullptr);
 public slots:
-    void readyRead();
+    //Well understood events
+    void injectTouch(QPoint l);
+    void injectTouchRelease();
+    void spinMainDial(int ticks);
+    void setFrameDivisor(uint8_t ndivisor);
 
-
+    //Debuging interfaces
     void writeWord(uint32_t addr, uint32_t data);
     void writeRequest(Request r);
     void writeInject(QByteArray toInject);
     void writeInjectHex(QString toInjectHex);
-    void spinMainDial(int ticks);
-    void setFrameDivisor(uint8_t ndivisor);
+
+
 signals:
-    void RDUReady();
-    void RDUNotReady();
+    void RDUReady(bool);
     void notifyUserOfState(QString);
+    void notifyUserOfAction(QString);
+    void newLrxdBytes(QByteArray);
+    void newLtxdBytes(QByteArray);
 protected:
     void timerEvent(QTimerEvent *event) override;
+private slots:
+    void readyRead();
 private:
     void stepState();
     QTcpSocket socket;
@@ -42,8 +49,6 @@ private:
     int msg_resp_buffer_write = -1;
     int msg_resp_buffer_idx = 0;
     uint8_t divisor = 0;
-    LtxdDecoder m_ltxd_decoder;
-    LrxdDecoder m_lrxd_decoder;
     int m_dial_offset = 0;
 
     QMdnsEngine::Server mServer;

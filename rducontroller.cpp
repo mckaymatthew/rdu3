@@ -2,6 +2,7 @@
 #include "pb_encode.h"
 #include "pb_decode.h"
 #include "RDUConstants.h"
+#include <QtEndian>
 
 RDUController::RDUController(QObject *parent)
     : QObject(parent)
@@ -84,6 +85,7 @@ void RDUController::stepState() {
 
 RDUController::state RDUController::idle() {
     emit notifyUserOfState(QString("Idle"));
+    emit RDUReady(false);
     return RDUController::state::RDU_Query_mDNS;
 }
 
@@ -166,7 +168,7 @@ RDUController::state RDUController::EnableClock() {
 }
 RDUController::state RDUController::Connected() {
     emit notifyUserOfState(QString("Connected"));
-    emit RDUReady();
+    emit RDUReady(true);
     const bool timeToPing = timeInState.elapsed() > 5000;
     if(timeToPing) {
         return RDUController::state::RDU_Ping;
@@ -251,12 +253,12 @@ void RDUController::readyRead() {
                     }
                     if(msg_resp.which_payload == Response_lrxd_tag) {
                         QByteArray lrxd((char *)msg_resp.payload.lrxd.data.bytes, msg_resp.payload.lrxd.data.size);
-                        m_lrxd_decoder.newData(lrxd);
+                        emit newLrxdBytes(lrxd);
 //                        qInfo() << (QString("Got LRXD Bytes: %1 %2").arg(lrxd.size()).arg(QString(lrxd.toHex())));
                     }
                     if(msg_resp.which_payload == Response_ltxd_tag) {
                         QByteArray ltxd((char *)msg_resp.payload.ltxd.data.bytes, msg_resp.payload.ltxd.data.size);
-                        m_ltxd_decoder.newData(ltxd);
+                        emit newLrxdBytes(ltxd);
                     }
                 }
             }
@@ -287,7 +289,7 @@ void RDUController::writeRequest(Request r) {
         pb_encode(&stream, Request_fields, &r);
         uint8_t message_length = stream.bytes_written;
         socket.write((const char *)&message_length,1);
-        auto writeRet = socket.write((const char *)buffer,message_length);
+        socket.write((const char *)buffer,message_length);
         socket.flush();
     }
 
@@ -309,8 +311,37 @@ void RDUController::setFrameDivisor(uint8_t ndivisior) {
 }
 
 void RDUController::spinMainDial(int ticks) {
+    emit notifyUserOfAction(QString("Dial %1").arg(ticks));
+    qInfo() << (QString("Spin main dial, request %1.").arg(ticks));
     m_dial_offset = m_dial_offset + ticks;
     if(socket.isValid()) {
         writeWord(MAIN_DAIL_OFFSET,m_dial_offset);
     }
+}
+
+void RDUController::injectTouch(QPoint l) {
+    if(l.x() < 0 || l.x() > 480) {
+        return;
+    }
+    if(l.y() < 0 || l.y() > 272) {
+        return;
+    }
+    emit notifyUserOfAction(QString("Touch Point: %1,%2").arg(l.x()).arg(l.y()));
+    quint16 x = qToBigEndian<quint16>(l.x());
+    quint16 y = qToBigEndian<quint16>(l.y());
+    QByteArray injectParameter = QByteArray::fromHex("fe1300");
+    injectParameter.append(quint8(x>>0));
+    injectParameter.append(quint8(x>>8));
+    injectParameter.append(quint8(y>>0));
+    injectParameter.append(quint8(y>>8));
+    injectParameter.append(QByteArray::fromHex("fd"));
+    qInfo() << (QString("Inject touch to %1,%2. Hex: %3 ").arg(l.x()).arg(l.y()).arg(QString(injectParameter.toHex())));
+    writeInject(injectParameter);
+
+}
+void RDUController::injectTouchRelease() {
+    emit notifyUserOfAction(QString("Touch Release"));
+    QByteArray injectParameter = QByteArray::fromHex("fe1300270f270ffd");
+    qInfo() << (QString("Touch Release: %1.").arg(QString(injectParameter.toHex())));
+    writeInject(injectParameter);
 }

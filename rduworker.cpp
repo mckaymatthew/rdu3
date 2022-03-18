@@ -22,9 +22,9 @@ void RDUWorker::startWorker()
     m_framesStart.start();
     bool result = m_incoming->bind(QHostAddress::AnyIPv4, 1337);
     if(!result) {
-        emit message(QString("Failed to open port\nApp already open?"));
+        qInfo() << QString("Failed to open port\nApp already open?");
     } else {
-        emit message(QString("Started Network Worker Thread."));
+        qInfo() << QString("Started Network Worker Thread.");
     }
     m_fpsCounter.start();
     startTimer(globalsUpdateMs);
@@ -67,7 +67,7 @@ void RDUWorker::csvLog(uint16_t line, uint16_t packet) {
             m_logFile = new QFile("log.csv",this);
             auto openRet = m_logFile->open(QIODevice::ReadWrite | QIODevice::Truncate);
             if(openRet) {
-                emit message(QString("Open Log CSV."));
+                qInfo() << QString("Debug: High speed network metadata logging.");
                 m_stream = new QTextStream(m_logFile);
                 *m_stream << "Packet,InternalCtr,Time,LineNumber\n";
             }
@@ -97,15 +97,15 @@ void RDUWorker::processPendingDatagrams()
         const uint16_t lineField = *((uint16_t*)header+1);
         const uint32_t scanlineIdx = BYTES_PER_LINE * lineField;
 
-        const bool oooPacket = packetCtr < m_packetIdLast;
+        const bool oooPacket = (packetCtr < m_packetIdLast) && ((packetCtr != 0) && (m_packetIdLast != 65535));
         const bool badLine = lineField > LINES;
         const bool endOfFrame = lineField == LINES-1;
         const bool currentBuffValid = m_currentBuff != nullptr;
         csvLog(lineField,packetCtr);
-        m_packetIdLast = packetCtr;
         if(oooPacket) {
-            qInfo() << QString("OOO packet %1, %2").arg(packetCtr).arg(m_packetIdLast);
+            qInfo() << QString("OOO packet %1, %2, %3").arg(packetCtr).arg(m_packetIdLast).arg(lineField);
         }
+        m_packetIdLast = packetCtr;
 
         if(badLine) {
             g_packetsRejected++;

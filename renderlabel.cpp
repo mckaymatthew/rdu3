@@ -28,6 +28,9 @@ RenderLabel::RenderLabel(QWidget *parent, Qt::WindowFlags)
     frameToFrameTime.start();
 }
 
+void RenderLabel::showStats(bool p_stats) {
+    stats = p_stats;
+}
 void RenderLabel::mousePressEvent(QMouseEvent* event) {
     active = true; //Record that mouse is held down
     auto initial = event->pos();
@@ -70,21 +73,32 @@ void RenderLabel::timerEvent(QTimerEvent*) {
 void RenderLabel::resizeEvent(QResizeEvent *event) {
     emit resized(event->size());
     //Calculate new render size.
-    QSize newSize(COLUMNS, LINES);
+    newSize = QSize(COLUMNS, LINES);
     newSize.scale(size(),Qt::KeepAspectRatio);
     //Calculate the resize transform matrix for later rescaling
     QTransform wm = QTransform::fromScale((qreal)newSize.width() / COLUMNS, (qreal)newSize.height() / LINES);
     mat = QImage::trueMatrix(wm, COLUMNS, LINES);
 }
 
+void RenderLabel::drawError_n(bool ready) {
+    noSignal = !ready;
+}
 void RenderLabel::paintEvent(QPaintEvent*) {
     renderTime.restart(); //Timer tracking how long paint takes
 
     //Draw the frame with the resize transformation
     QPainter p(this);
-    p.setTransform(mat);
-    p.drawImage(QPoint(0, 0), this->toRender);
-
+    if(noSignal) {
+        QString message = QString("No Signal");
+        QRect boundingRect = QRect(QPoint(0,0),newSize);
+        p.fillRect(boundingRect,QColor("Black"));
+        p.setPen(QPen(Qt::red));
+        p.setFont(QFont("Courier New", 48, QFont::Bold));
+        p.drawText(boundingRect, Qt::AlignCenter, QString("%1").arg(message));
+    } else {
+        p.setTransform(mat);
+        p.drawImage(QPoint(0, 0), this->toRender);
+    }
     previousRender =
             ((59.0* previousRender) +
             (renderTime.nsecsElapsed() / 1000000)) / 60;

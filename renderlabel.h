@@ -16,7 +16,9 @@ public:
     explicit RenderLabel(QWidget *parent=nullptr, Qt::WindowFlags f=Qt::WindowFlags());
     QImage toRender;
     QByteArray* imageBacking = nullptr;
-    bool stats = false;
+public slots:
+    void showStats(bool stats);
+    void drawError_n(bool ready);
 signals:
     void touch(QPoint l);
     void release();
@@ -32,13 +34,17 @@ protected:
     void resizeEvent(QResizeEvent *event) override;
 private:
     bool active = false;
+    bool noSignal = true;
+
     int32_t accumulatedWheelies = 0;
     QElapsedTimer renderTime;
     QElapsedTimer fpsTime;
     QElapsedTimer frameToFrameTime;
     double previousFPS = 0;
     double previousRender = 0;
+    QSize newSize;
     QTransform mat;
+    bool stats = false;
 
 };
 

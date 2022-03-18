@@ -23,7 +23,6 @@ protected:
 signals:
     void newFrame(QByteArray* frame);
     void newStats(uint32_t packetCount, uint32_t badPackets, uint32_t oooPackets);
-    void message(QString);
 
 private slots:
     void processPendingDatagrams();
