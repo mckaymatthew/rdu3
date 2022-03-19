@@ -10,10 +10,7 @@ class Paths
 
     public:
         Paths(QString exeDir);
-        QString getAttachmentPath();
         QString getHandlerPath();
-        QString getReportsPath();
-        QString getMetricsPath();
         #if defined(Q_OS_MACOS) || defined(Q_OS_LINUX)
             static string getPlatformString(QString string);
         #elif defined(Q_OS_WINDOWS)

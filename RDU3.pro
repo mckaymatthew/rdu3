@@ -105,14 +105,14 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 
 # Crashpad rules for Windows
 CONFIG(release, debug|release) {
+    INCLUDEPATH += $$PWD/crashpad/includes/
+    INCLUDEPATH += $$PWD/crashpad/includes/out/Default/gen/
+    INCLUDEPATH += $$PWD/crashpad/includes/third_party/mini_chromium/mini_chromium
+    SOURCES += main_release.cpp
     win32 {
-        SOURCES += main_release.cpp
         QMAKE_CXXFLAGS_RELEASE += /Zi
         QMAKE_LFLAGS_RELEASE += /DEBUG:FULL
 
-        INCLUDEPATH += $$PWD/crashpad/includes/
-        INCLUDEPATH += $$PWD/crashpad/includes/out/Default/gen/
-        INCLUDEPATH += $$PWD/crashpad/includes/third_party/mini_chromium/mini_chromium
         LIBS += -L$$PWD/crashpad/lib/win/ -lbase -lclient -lcommon -lutil
         LIBS += -lAdvapi32
 
@@ -126,8 +126,22 @@ CONFIG(release, debug|release) {
 
         QMAKE_POST_LINK += "copy /y $$shell_path($$PWD)\crashpad\bin\win\crashpad_handler.exe $$shell_path($$EXEDIR)"
         QMAKE_POST_LINK += "&& $$shell_path($$PWD)\crashpad\bin\win\symbols.bat $$shell_path($$PWD) $$shell_path($$EXEDIR) rdu3 RDU3 0.0.1 > $$shell_path($$PWD)\crashpad\bin\win\symbols.out 2>&1"
-    } else {
-        SOURCES += main.cpp
+    }
+    macx {
+
+        CONFIG += force_debug_info
+        CONFIG += separate_debug_info
+
+        # Crashpad libraries
+        LIBS += -L$$PWD/crashpad/lib/mac/ -lbase -lclient -lcommon -lutil -lmig_output
+
+        # System libraries
+        LIBS += -L/usr/lib/ -lbsm
+        LIBS += -framework AppKit
+        LIBS += -framework Security
+
+        QMAKE_POST_LINK += "cp $$PWD/crashpad/bin/mac/crashpad_handler $$OUT_PWD/RDU3.app/Contents/MacOS/crashpad_handler"
+        QMAKE_POST_LINK += "&& bash $$PWD/crashpad/bin/mac/symbols.sh $$PWD $$OUT_PWD rdu3 RDU3 0.0.1 > $$PWD/crashpad/bin/mac/symbols.out 2>&1"
     }
 } else {
     SOURCES += main.cpp

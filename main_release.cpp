@@ -1,9 +1,9 @@
 #define NOMINMAX
 #include "mainwindow.h"
-#include "rduwindow.h"
+#include <QStandardPaths>
 
 #if defined(Q_OS_MACOS)
-    #include <mach-o/dyld.h
+    #include <mach-o/dyld.h>
 #endif
 
 #if defined(Q_OS_LINUX)
@@ -13,6 +13,9 @@
 
 
 #include <QApplication>
+#include <QDateTime>
+#include <QDir>
+#include <iostream>
 
 #include "client/crash_report_database.h"
 #include "client/crashpad_client.h"
@@ -21,7 +24,7 @@
 using namespace base;
 using namespace crashpad;
 
-bool initializeCrashpad(QString dbName, QString appName, QString appVersion);
+bool initializeCrashpad(QString dbName, QString appName, QString appVersion, QString dataDir);
 QString getExecutableDir(void);
 
 QAtomicInt g_NetworkBytesPerSecond;
@@ -57,7 +60,8 @@ void myMessageOutput(QtMsgType type, const QMessageLogContext &context, const QS
     }
 
     std::cout << txt.toLatin1().data() << std::endl << std::flush;
-    *ts << txt;
+    *ts << txt << Qt::endl;
+    ts->flush();
 }
 
 int main(int argc, char *argv[])
@@ -66,25 +70,34 @@ int main(int argc, char *argv[])
     QString appName = "rdu3";
     QString appVersion = "0.0.1";
 
-    initializeCrashpad(dbName, appName, appVersion);
-
-    QFile logFile(QDir::tempPath() + QDir::separator() + "RDU.txt");
-    logFile.open(QIODevice::WriteOnly | QIODevice::Truncate);
-    ts = new QTextStream(&logFile);
-
-    qInstallMessageHandler(myMessageOutput);
 
     QApplication a(argc, argv);
+    QString appData = QStandardPaths::locate(QStandardPaths::GenericDataLocation,"",QStandardPaths::LocateDirectory) + a.applicationName() + "/";
+    QDir appDataRdu = QDir(appData);
+    if(!appDataRdu.exists()) {
+        appDataRdu.mkpath(appData);
+        qInfo() << "Making app path " << appData;
+    }
+    QString logPath = appData + "log.txt";
+    qInfo() << "Logging to " << logPath;
+    QFile logFile(logPath);
+    logFile.open(QIODevice::WriteOnly | QIODevice::Truncate);
+
+    ts = new QTextStream(&logFile);
+
+    initializeCrashpad(dbName, appName, appVersion, appData);
+    qInstallMessageHandler(myMessageOutput);
+
     MainWindow w;
     w.show();
     return a.exec();
 }
 
 
-bool initializeCrashpad(QString dbName, QString appName, QString appVersion)
+bool initializeCrashpad(QString dbName, QString appName, QString appVersion, QString dataDir)
 {
     // Get directory where the exe lives so we can pass a full path to handler, reportsDir and metricsDir
-    QString exeDir = getExecutableDir();
+    QString exeDir = QCoreApplication::applicationDirPath();
     qInfo() << exeDir;
     // Helper class for cross-platform file systems
     Paths crashpadPaths(exeDir);
@@ -93,13 +106,13 @@ bool initializeCrashpad(QString dbName, QString appName, QString appVersion)
     FilePath handler(Paths::getPlatformString(crashpadPaths.getHandlerPath()));
 
     // Directory where reports will be saved. Important! Must be writable or crashpad_handler will crash.
-    FilePath reportsDir(Paths::getPlatformString(crashpadPaths.getReportsPath()));
+    FilePath reportsDir(Paths::getPlatformString(dataDir));
 
     // Directory where metrics will be saved. Important! Must be writable or crashpad_handler will crash.
-    FilePath metricsDir(Paths::getPlatformString(crashpadPaths.getMetricsPath()));
+    FilePath metricsDir(Paths::getPlatformString(dataDir));
 
     // Configure url with your BugSplat database
-    QString url = "http://" + dbName + ".bugsplat.com/post/bp/crash/crashpad.php";
+    QString url = "https://" + dbName + ".bugsplat.com/post/bp/crash/crashpad.php";
 
     // Metadata that will be posted to BugSplat
     QMap<string, string> annotations;
@@ -124,63 +137,14 @@ bool initializeCrashpad(QString dbName, QString appName, QString appVersion)
     if (settings == NULL) return false;
     settings->SetUploadsEnabled(true);
 
-    // Attachments to be uploaded alongside the crash - default bundle size limit is 20MB
-    vector<FilePath> attachments;
-    FilePath attachment(Paths::getPlatformString(crashpadPaths.getAttachmentPath()));
-#if defined(Q_OS_WINDOWS) || defined(Q_OS_LINUX)
-    // Crashpad hasn't implemented attachments on OS X yet
-    attachments.push_back(attachment);
-#endif
+//    // Attachments to be uploaded alongside the crash - default bundle size limit is 20MB
+//    vector<FilePath> attachments;
 
     // Start crash handler
     qInfo() << "Start crash handler. 123";
     CrashpadClient *client = new CrashpadClient();
-    bool status = client->StartHandler(handler, reportsDir, metricsDir, url.toStdString(), annotations.toStdMap(), arguments, true, true, attachments);
+    bool status = client->StartHandler(handler, reportsDir, metricsDir, url.toStdString(), annotations.toStdMap(), arguments, true, true);
+//    bool status = client->StartHandler(handler, reportsDir, metricsDir, url.toStdString(), annotations.toStdMap(), arguments, true, true, attachments);
     qInfo() << QString("Crashpad start: %1").arg(status);
     return status;
-}
-
-QString getExecutableDir() {
-#if defined(Q_OS_MACOS)
-    unsigned int bufferSize = 512;
-    vector<char> buffer(bufferSize + 1);
-
-    if(_NSGetExecutablePath(&buffer[0], &bufferSize))
-    {
-        buffer.resize(bufferSize);
-        _NSGetExecutablePath(&buffer[0], &bufferSize);
-    }
-
-    char* lastForwardSlash = strrchr(&buffer[0], '/');
-    if (lastForwardSlash == NULL) return NULL;
-    *lastForwardSlash = 0;
-
-    return &buffer[0];
-#elif defined(Q_OS_WINDOWS)
-    HMODULE hModule = GetModuleHandleW(NULL);
-    WCHAR path[MAX_PATH];
-    DWORD retVal = GetModuleFileNameW(hModule, path, MAX_PATH);
-    if (retVal == 0) return NULL;
-
-    wchar_t *lastBackslash = wcsrchr(path, '\\');
-    if (lastBackslash == NULL) return NULL;
-    *lastBackslash = 0;
-
-    return QString::fromWCharArray(path);
-#elif defined(Q_OS_LINUX)
-    char pBuf[FILENAME_MAX];
-    int len = sizeof(pBuf);
-    int bytes = MIN(readlink("/proc/self/exe", pBuf, len), len - 1);
-    if (bytes >= 0) {
-        pBuf[bytes] = '\0';
-    }
-
-    char* lastForwardSlash = strrchr(&pBuf[0], '/');
-    if (lastForwardSlash == NULL) return NULL;
-    *lastForwardSlash = '\0';
-
-    return QString::fromStdString(pBuf);
-#else
-    #error getExecutableDir not implemented on this platform
-#endif
 }

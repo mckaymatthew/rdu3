@@ -264,7 +264,7 @@ void MainWindow::on_actionGenerate_App_Crash_triggered()
 
 void MainWindow::on_actionOpen_log_file_triggered()
 {
-    QString logPath = "file://" +QDir::tempPath() + QDir::separator() + "RDU.txt";
+    QString logPath = "file://" +QDir::tempPath() + "/RDU.txt";
     qInfo() << QString("Requesting OS to open %1").arg(logPath);
     QDesktopServices::openUrl(logPath);
 }

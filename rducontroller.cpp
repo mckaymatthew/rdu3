@@ -273,7 +273,7 @@ void RDUController::writeInject(QByteArray toInject) {
     Request r = Request_init_default;
     qsizetype maxInject = sizeof(r.payload.inject.data.bytes);
     if(toInject.size() > maxInject) {
-        qInfo() << (QString("Inject request too big.  %1.").arg(toInject.size()));
+        qWarning() << (QString("Inject request too big.  %1.").arg(toInject.size()));
         return;
     }
     r.which_payload = Request_inject_tag;
@@ -311,7 +311,6 @@ void RDUController::setFrameDivisor(uint8_t ndivisior) {
 
 void RDUController::spinMainDial(int ticks) {
     emit notifyUserOfAction(QString("Dial %1").arg(ticks));
-    qInfo() << (QString("Spin main dial, request %1.").arg(ticks));
     m_dial_offset = m_dial_offset + ticks;
     if(socket.isValid()) {
         writeWord(MAIN_DAIL_OFFSET,m_dial_offset);

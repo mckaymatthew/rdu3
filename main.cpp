@@ -4,6 +4,7 @@
 #include <QApplication>
 #include <QDir>
 #include <QIODevice>
+#include <QStandardPaths>
 
 #include <iostream>
 
@@ -47,14 +48,28 @@ void myMessageOutput(QtMsgType type, const QMessageLogContext &context, const QS
 
 int main(int argc, char *argv[])
 {
-    QString logPath = QDir::tempPath() + QDir::separator() + "RDU.txt";
+
+    QString dbName = "rdu3";
+    QString appName = "rdu3";
+    QString appVersion = "0.0.1";
+
+
+    QApplication a(argc, argv);
+    QString appData = QStandardPaths::locate(QStandardPaths::GenericDataLocation,"",QStandardPaths::LocateDirectory) + a.applicationName() + "/";
+    QDir appDataRdu = QDir(appData);
+    if(!appDataRdu.exists()) {
+        appDataRdu.mkpath(appData);
+        qInfo() << "Making app path " << appData;
+    }
+    QString logPath = appData + "log.txt";
+    qInfo() << "Logging to " << logPath;
     QFile logFile(logPath);
     logFile.open(QIODevice::WriteOnly | QIODevice::Truncate);
+
     ts = new QTextStream(&logFile);
 
     qInstallMessageHandler(myMessageOutput);
-    qInfo() << QString("Logging to %1").arg(logPath);
-    QApplication a(argc, argv);
+
     MainWindow w;
     w.show();
     return a.exec();
