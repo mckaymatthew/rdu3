@@ -108,9 +108,9 @@ CONFIG(release, debug|release) {
     CONFIG += force_debug_info
     CONFIG += separate_debug_info
     win32 {
-        INCLUDEPATH += $$PWD/crashpad/includes/
-        INCLUDEPATH += $$PWD/crashpad/includes/out/Default/gen/
-        INCLUDEPATH += $$PWD/crashpad/includes/third_party/mini_chromium/mini_chromium
+        INCLUDEPATH += $$PWD/crashpad/include/
+        INCLUDEPATH += $$PWD/crashpad/include/out/Default/gen/
+        INCLUDEPATH += $$PWD/crashpad/include/third_party/mini_chromium/mini_chromium
         SOURCES += main_crashpad.cpp
 
         LIBS += -L$$PWD/crashpad/lib/win/ -lbase -lclient -lcommon -lutil
@@ -128,9 +128,9 @@ CONFIG(release, debug|release) {
         QMAKE_POST_LINK += "&& $$shell_path($$PWD)\crashpad\bin\win\symbols.bat $$shell_path($$PWD) $$shell_path($$EXEDIR) rdu3 RDU3 0.0.1 > $$shell_path($$PWD)\crashpad\bin\win\symbols.out 2>&1"
     }
     macx {
-        INCLUDEPATH += $$PWD/crashpad/includes/
-        INCLUDEPATH += $$PWD/crashpad/includes/out/Default/gen/
-        INCLUDEPATH += $$PWD/crashpad/includes/third_party/mini_chromium/mini_chromium
+        INCLUDEPATH += $$PWD/crashpad/include/
+        INCLUDEPATH += $$PWD/crashpad/include/out/Default/gen/
+        INCLUDEPATH += $$PWD/crashpad/include/third_party/mini_chromium/mini_chromium
         SOURCES += main_crashpad.cpp
 
         # Crashpad libraries
