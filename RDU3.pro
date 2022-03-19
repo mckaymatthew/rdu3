@@ -105,13 +105,13 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 
 # Crashpad rules for Windows
 CONFIG(release, debug|release) {
-    INCLUDEPATH += $$PWD/crashpad/includes/
-    INCLUDEPATH += $$PWD/crashpad/includes/out/Default/gen/
-    INCLUDEPATH += $$PWD/crashpad/includes/third_party/mini_chromium/mini_chromium
-    SOURCES += main_release.cpp
+    CONFIG += force_debug_info
+    CONFIG += separate_debug_info
     win32 {
-        QMAKE_CXXFLAGS_RELEASE += /Zi
-        QMAKE_LFLAGS_RELEASE += /DEBUG:FULL
+        INCLUDEPATH += $$PWD/crashpad/includes/
+        INCLUDEPATH += $$PWD/crashpad/includes/out/Default/gen/
+        INCLUDEPATH += $$PWD/crashpad/includes/third_party/mini_chromium/mini_chromium
+        SOURCES += main_crashpad.cpp
 
         LIBS += -L$$PWD/crashpad/lib/win/ -lbase -lclient -lcommon -lutil
         LIBS += -lAdvapi32
@@ -128,9 +128,10 @@ CONFIG(release, debug|release) {
         QMAKE_POST_LINK += "&& $$shell_path($$PWD)\crashpad\bin\win\symbols.bat $$shell_path($$PWD) $$shell_path($$EXEDIR) rdu3 RDU3 0.0.1 > $$shell_path($$PWD)\crashpad\bin\win\symbols.out 2>&1"
     }
     macx {
-
-        CONFIG += force_debug_info
-        CONFIG += separate_debug_info
+        INCLUDEPATH += $$PWD/crashpad/includes/
+        INCLUDEPATH += $$PWD/crashpad/includes/out/Default/gen/
+        INCLUDEPATH += $$PWD/crashpad/includes/third_party/mini_chromium/mini_chromium
+        SOURCES += main_crashpad.cpp
 
         # Crashpad libraries
         LIBS += -L$$PWD/crashpad/lib/mac/ -lbase -lclient -lcommon -lutil -lmig_output
@@ -142,6 +143,11 @@ CONFIG(release, debug|release) {
 
         QMAKE_POST_LINK += "cp $$PWD/crashpad/bin/mac/crashpad_handler $$OUT_PWD/RDU3.app/Contents/MacOS/crashpad_handler"
         QMAKE_POST_LINK += "&& bash $$PWD/crashpad/bin/mac/symbols.sh $$PWD $$OUT_PWD rdu3 RDU3 0.0.1 > $$PWD/crashpad/bin/mac/symbols.out 2>&1"
+    }
+    linux {
+        INCLUDEPATH += $$PWD/breakpad/include/
+        SOURCES += main_breakpad.cpp
+        LIBS += -L$$PWD/breakpad/lib/linux/ -lbreakpad_client
     }
 } else {
     SOURCES += main.cpp
