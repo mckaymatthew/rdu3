@@ -148,6 +148,8 @@ CONFIG(release, debug|release) {
         INCLUDEPATH += $$PWD/breakpad/include/
         SOURCES += main_breakpad.cpp
         LIBS += -L$$PWD/breakpad/lib/linux/ -lbreakpad_client
+        QMAKE_POST_LINK += "cp $$PWD/breakpad/bin/linux/minidump_upload $$OUT_PWD/minidump_upload"
+        QMAKE_POST_LINK += "&& $$PWD/breakpad/bin/linux/symbols.sh $$PWD $$OUT_PWD rdu3 RDU3 0.0.1 > $$PWD/breakpad/bin/linux/symbols.out 2>&1"
     }
 } else {
     SOURCES += main.cpp
