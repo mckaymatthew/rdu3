@@ -20,8 +20,6 @@ namespace {
 RenderLabel::RenderLabel(QWidget *parent, Qt::WindowFlags)
     : QLabel(parent)
 {
-    constexpr int wheelyBuffer = 1000/60; //60 times a second send the wheely updates
-    startTimer(wheelyBuffer);
     //Start various timers so they're valid when we go to restart them
     fpsTime.start();
     renderTime.start();
@@ -51,23 +49,7 @@ void RenderLabel::mouseReleaseEvent(QMouseEvent*) {
 
 void RenderLabel::wheelEvent(QWheelEvent* event) {
     event->accept();
-    QPoint numPixels = event->pixelDelta();
-    QPoint numDegrees = event->angleDelta();
-    //Which delta depends on platform and input source
-    //TODO: Currenly a single wheel event is one tick of the dial
-    //Need to figure out how to better map these deltas to multiticks.
-    if (!numPixels.isNull()) {
-        accumulatedWheelies = accumulatedWheelies + sgn(numPixels.y());
-    } else if (!numDegrees.isNull()) {
-        accumulatedWheelies = accumulatedWheelies + sgn(numDegrees.y());
-    }
-}
-
-void RenderLabel::timerEvent(QTimerEvent*) {
-    if(accumulatedWheelies != 0) {
-        emit wheely(accumulatedWheelies);
-        accumulatedWheelies = 0;
-    }
+    emit wheeld(event);
 }
 
 void RenderLabel::resizeEvent(QResizeEvent *event) {

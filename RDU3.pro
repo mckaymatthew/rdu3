@@ -8,6 +8,7 @@ CONFIG += c++11
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
+    accumulator.cpp \
     lrxddecoder.cpp \
     paths.cpp \
     renderlabel.cpp \
@@ -41,6 +42,7 @@ SOURCES += \
     rduworker.cpp
 
 HEADERS += \
+    accumulator.h \
     lrxddecoder.h \
     paths.h \
     renderlabel.h \

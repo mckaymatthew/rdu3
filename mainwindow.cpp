@@ -111,6 +111,11 @@ MainWindow::MainWindow(QWidget *parent)
 //    this->ui->stackedWidget->setCurrentIndex(index.toInt());
 //    restoreGeometry(m_settings.value("mainWindow/geometry").toByteArray());
 
+    connect(this->ui->renderZone_1, &RenderLabel::wheeld, [this](QWheelEvent * e){
+
+        QCoreApplication::postEvent(this->ui->mainDial, e->clone());
+    });
+    connect(&m_accumulatorDial, &Accumulator::output, &m_controller, &RDUController::spinMainDial);
 
     connect(this->ui->actionInhibit_Transmit, &QAction::triggered, std::bind(&RDUController::writeWord, &m_controller, CLK_GATE, 0));
     connect(this->ui->actionInhibit_Transmit, &QAction::triggered, std::bind(&MainWindow::updateAction, this, "Tx Inhibit"));
@@ -267,5 +272,19 @@ void MainWindow::on_actionOpen_log_file_triggered()
     QString logPath = "file://" +QDir::tempPath() + "/RDU.txt";
     qInfo() << QString("Requesting OS to open %1").arg(logPath);
     QDesktopServices::openUrl(logPath);
+}
+
+void MainWindow::on_mainDial_valueChanged(int value)
+{
+    auto diff = value - m_dialLast;
+    if(diff < -180) {
+        diff = diff + 360;
+    }
+    if(diff > 180) {
+        diff = diff - 360;
+    }
+    m_accumulatorDial.input(diff);
+    qInfo() << QString("Main Dial Slider Value Changed %1, diff %2").arg(value,3).arg(diff,3);
+    m_dialLast = value;
 }
 

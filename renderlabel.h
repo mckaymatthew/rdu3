@@ -24,19 +24,18 @@ signals:
     void release();
     void wheely(int clicks);
     void resized(QSize s);
+    void wheeld(QWheelEvent *event);
 protected:
     void mousePressEvent(QMouseEvent* event) override;
     void mouseMoveEvent(QMouseEvent* event) override;
     void mouseReleaseEvent(QMouseEvent* event) override;
     void wheelEvent(QWheelEvent *event) override;
-    void timerEvent(QTimerEvent *event) override;
     void paintEvent(QPaintEvent *event) override;
     void resizeEvent(QResizeEvent *event) override;
 private:
     bool active = false;
     bool noSignal = true;
 
-    int32_t accumulatedWheelies = 0;
     QElapsedTimer renderTime;
     QElapsedTimer fpsTime;
     QElapsedTimer frameToFrameTime;
