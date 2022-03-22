@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>825</width>
-    <height>364</height>
+    <height>361</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -199,7 +199,7 @@ QLabel {
                  <item row="2" column="2">
                   <widget class="QDial" name="bpf_out">
                    <property name="maximum">
-                    <number>20</number>
+                    <number>19</number>
                    </property>
                    <property name="pageStep">
                     <number>1</number>
@@ -225,7 +225,7 @@ QLabel {
                  <item row="2" column="0">
                   <widget class="QDial" name="bpf_in">
                    <property name="maximum">
-                    <number>20</number>
+                    <number>19</number>
                    </property>
                    <property name="pageStep">
                     <number>1</number>
@@ -370,12 +370,22 @@ R</string>
                   <number>0</number>
                  </property>
                  <item row="1" column="0">
-                  <widget class="QDial" name="dial_3"/>
+                  <widget class="QDial" name="volume">
+                   <property name="maximum">
+                    <number>252</number>
+                   </property>
+                   <property name="notchTarget">
+                    <double>15.000000000000000</double>
+                   </property>
+                   <property name="notchesVisible">
+                    <bool>true</bool>
+                   </property>
+                  </widget>
                  </item>
                  <item row="0" column="0">
                   <widget class="QLabel" name="label_3">
                    <property name="text">
-                    <string>AF</string>
+                    <string>VOL</string>
                    </property>
                    <property name="alignment">
                     <set>Qt::AlignCenter</set>
@@ -383,18 +393,24 @@ R</string>
                   </widget>
                  </item>
                  <item row="1" column="1">
-                  <widget class="QDial" name="dial_4">
+                  <widget class="QDial" name="rfsql">
+                   <property name="enabled">
+                    <bool>true</bool>
+                   </property>
+                   <property name="maximum">
+                    <number>252</number>
+                   </property>
                    <property name="pageStep">
                     <number>1</number>
                    </property>
                    <property name="wrapping">
-                    <bool>true</bool>
+                    <bool>false</bool>
                    </property>
                    <property name="notchTarget">
-                    <double>5.000000000000000</double>
+                    <double>15.000000000000000</double>
                    </property>
                    <property name="notchesVisible">
-                    <bool>false</bool>
+                    <bool>true</bool>
                    </property>
                   </widget>
                  </item>
@@ -617,7 +633,7 @@ R</string>
                     <number>0</number>
                    </property>
                    <property name="maximum">
-                    <number>20</number>
+                    <number>19</number>
                    </property>
                    <property name="pageStep">
                     <number>1</number>
@@ -692,16 +708,6 @@ R</string>
                    </property>
                   </widget>
                  </item>
-                 <item row="4" column="1">
-                  <widget class="QPushButton" name="fpb_XFC_0d80">
-                   <property name="enabled">
-                    <bool>true</bool>
-                   </property>
-                   <property name="text">
-                    <string>XFC</string>
-                   </property>
-                  </widget>
-                 </item>
                  <item row="1" column="2">
                   <widget class="QPushButton" name="fpb_DeltaTx_0f20">
                    <property name="minimumSize">
@@ -735,6 +741,16 @@ R</string>
                    </property>
                    <property name="text">
                     <string>SPEECH</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="4" column="1">
+                  <widget class="QPushButton" name="fpb_XFC_0d80">
+                   <property name="enabled">
+                    <bool>true</bool>
+                   </property>
+                   <property name="text">
+                    <string>XFC</string>
                    </property>
                   </widget>
                  </item>

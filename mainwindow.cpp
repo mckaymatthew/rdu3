@@ -130,21 +130,27 @@ MainWindow::MainWindow(QWidget *parent)
     connect(this->ui->actionHaltSOC, &QAction::triggered, std::bind(&MainWindow::updateAction, this, "Halt SOC"));
 
 
-    connect(this->ui->mainDial, &QDial::valueChanged, &this->m_mainDialAccumulator, &Accumulator::input);
-    connect(this->ui->multiDial, &QDial::valueChanged, &this->m_multiDialAccumulator, &Accumulator::input);
-    connect(this->ui->bpf_in, &QDial::valueChanged, &this->m_bpfInAccumulator, &Accumulator::input);
-    connect(this->ui->bpf_out, &QDial::valueChanged, &this->m_bpfOutAccumulator, &Accumulator::input);
+    connect(this->ui->mainDial, &QDial::valueChanged, &this->m_mainDialAccumulator, &RotaryAccumulator::input);
+    connect(this->ui->multiDial, &QDial::valueChanged, &this->m_multiDialAccumulator, &RotaryAccumulator::input);
+    connect(this->ui->bpf_in, &QDial::valueChanged, &this->m_bpfInAccumulator, &RotaryAccumulator::input);
+    connect(this->ui->bpf_out, &QDial::valueChanged, &this->m_bpfOutAccumulator, &RotaryAccumulator::input);
 
-    connect(&m_mainDialAccumulator, &Accumulator::output, &m_controller, &RDUController::spinMainDial);
-    connect(&m_multiDialAccumulator, &Accumulator::output, &m_controller, &RDUController::spinMultiDial);
-    connect(&m_bpfInAccumulator, &Accumulator::output, &m_controller, &RDUController::spinBPFInDial);
-    connect(&m_bpfOutAccumulator, &Accumulator::output, &m_controller, &RDUController::spinBPFOutDial);
+    connect(&m_mainDialAccumulator, &RotaryAccumulator::output, &m_controller, &RDUController::spinMainDial);
+    connect(&m_multiDialAccumulator, &RotaryAccumulator::output, &m_controller, &RDUController::spinMultiDial);
+    connect(&m_bpfInAccumulator, &RotaryAccumulator::output, &m_controller, &RDUController::spinBPFInDial);
+    connect(&m_bpfOutAccumulator, &RotaryAccumulator::output, &m_controller, &RDUController::spinBPFOutDial);
+    connect(this->ui->volume, &QDial::valueChanged, &m_controller, &RDUController::adjustVolume);
+    connect(this->ui->rfsql, &QDial::valueChanged, &m_controller, &RDUController::adjustRfSql);
 
-    m_mainDialAccumulator.setMax(360);
-    m_multiDialAccumulator.setMax(20);
-    m_bpfInAccumulator.setMax(20);
-    m_bpfOutAccumulator.setMax(20);
 
+    m_mainDialAccumulator.setMax(this->ui->mainDial->maximum() + 1);
+    m_multiDialAccumulator.setMax(this->ui->multiDial->maximum() + 1);
+    m_bpfInAccumulator.setMax(this->ui->bpf_in->maximum() + 1);
+    m_bpfOutAccumulator.setMax(this->ui->bpf_out->maximum() + 1);
+
+    QTimer::singleShot(5,[this](){
+        this->resize(this->minimumSizeHint());
+    });
 }
 
 

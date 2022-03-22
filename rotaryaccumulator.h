@@ -1,14 +1,14 @@
-#ifndef ACCUMULATOR_H
-#define ACCUMULATOR_H
+#ifndef ROTARYACCUMULATOR_H
+#define ROTARYACCUMULATOR_H
 
 #include <QObject>
 #include <QTimerEvent>
 
-class Accumulator : public QObject
+class RotaryAccumulator : public QObject
 {
     Q_OBJECT
 public:
-    explicit Accumulator(QObject *parent = nullptr);
+    explicit RotaryAccumulator(QObject *parent = nullptr);
 public slots:
     void input(int items);
     void setMax(int max);
@@ -22,4 +22,4 @@ private:
     int maxValue = 0;
 };
 
-#endif // ACCUMULATOR_H
+#endif // ROTARYACCUMULATOR_H

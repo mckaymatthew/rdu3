@@ -9,11 +9,16 @@ namespace {
         return (T(0) < val) - (val < T(0));
     }
     //Scale a point (down) from the render size to actual size
-    void scale(QPoint& p, QSize area) {
-        double yScale = (double)LINES / area.height();
-        double xScale = (double)COLUMNS / area.width();
+    bool scale(QPoint& p, QSize validArea) {
+        if(p.y() > validArea.height() || p.x() > validArea.width() ) {
+//            qInfo() << "Reject touch " << p << " " << validArea;
+            return false;
+        }
+        double yScale = (double)LINES / validArea.height();
+        double xScale = (double)COLUMNS / validArea.width();
         p.rx() *= xScale;
         p.ry() *= yScale;
+        return true;
     }
 
 }
@@ -30,21 +35,21 @@ void RenderLabel::showStats(bool p_stats) {
     stats = p_stats;
 }
 void RenderLabel::mousePressEvent(QMouseEvent* event) {
-    active = true; //Record that mouse is held down
     auto initial = event->pos();
-    scale(initial, this->size());
-    emit touch(initial);
-}
-void RenderLabel::mouseMoveEvent(QMouseEvent* event) {
-    if(active) { //If mouse is held down
-        auto initial = event->pos();
-        scale(initial, this->size());
+    auto good = scale(initial, newSize);
+    if(good) {
+        active = true; //Record that mouse is held down
         emit touch(initial);
     }
 }
+void RenderLabel::mouseMoveEvent(QMouseEvent* event) {
+    mousePressEvent(event);
+}
 void RenderLabel::mouseReleaseEvent(QMouseEvent*) {
+    if(active) {
+        emit release();
+    }
     active = false;
-    emit release();
 }
 
 void RenderLabel::wheelEvent(QWheelEvent* event) {

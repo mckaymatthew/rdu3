@@ -22,7 +22,7 @@
 #include "ltxddecoder.h"
 #include "lrxddecoder.h"
 #include <QList>
-#include "accumulator.h"
+#include "rotaryaccumulator.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -71,10 +71,10 @@ private:
     QList<RenderLabel*> m_zones;
     QList<QAction*> m_fpsActions;
     QString m_stateLast;
-    Accumulator m_mainDialAccumulator;
-    Accumulator m_multiDialAccumulator;
-    Accumulator m_bpfInAccumulator;
-    Accumulator m_bpfOutAccumulator;
+    RotaryAccumulator m_mainDialAccumulator;
+    RotaryAccumulator m_multiDialAccumulator;
+    RotaryAccumulator m_bpfInAccumulator;
+    RotaryAccumulator m_bpfOutAccumulator;
 
     int m_dialLast = 0;
 };

@@ -32,6 +32,12 @@ typedef struct _InjectUART {
     InjectUART_data_t data; 
 } InjectUART;
 
+typedef struct _MemOp { 
+    uint32_t address; 
+    bool has_data;
+    uint32_t data; 
+} MemOp;
+
 typedef struct _Ping { 
     pb_byte_t magic[6]; 
 } Ping;
@@ -41,19 +47,15 @@ typedef struct _UartData {
     UartData_data_t data; 
 } UartData;
 
-typedef struct _WriteWord { 
-    uint32_t address; 
-    uint32_t data; 
-} WriteWord;
-
 typedef struct _Request { 
     pb_size_t which_payload;
     union {
         Ping ping;
-        WriteWord writeWord;
+        MemOp writeWord;
         RequestInfo info;
         SetupSlots setupSlots;
         InjectUART inject;
+        MemOp readWord;
     } payload; 
 } Request;
 
@@ -65,6 +67,8 @@ typedef struct _Response {
         Ack ack;
         UartData ltxd;
         UartData lrxd;
+        InjectUART inject;
+        MemOp readWord;
     } payload; 
 } Response;
 
@@ -77,7 +81,7 @@ extern "C" {
 #define Request_init_default                     {0, {Ping_init_default}}
 #define Response_init_default                    {0, {Ping_init_default}}
 #define Ping_init_default                        {{0}}
-#define WriteWord_init_default                   {0, 0}
+#define MemOp_init_default                       {0, false, 0}
 #define RequestInfo_init_default                 {0}
 #define DeviceInfo_init_default                  {{0, {0}}}
 #define Ack_init_default                         {0}
@@ -87,7 +91,7 @@ extern "C" {
 #define Request_init_zero                        {0, {Ping_init_zero}}
 #define Response_init_zero                       {0, {Ping_init_zero}}
 #define Ping_init_zero                           {{0}}
-#define WriteWord_init_zero                      {0, 0}
+#define MemOp_init_zero                          {0, false, 0}
 #define RequestInfo_init_zero                    {0}
 #define DeviceInfo_init_zero                     {{0, {0}}}
 #define Ack_init_zero                            {0}
@@ -98,20 +102,23 @@ extern "C" {
 /* Field tags (for use in manual encoding/decoding) */
 #define DeviceInfo_hardwareAddress_tag           1
 #define InjectUART_data_tag                      1
+#define MemOp_address_tag                        1
+#define MemOp_data_tag                           2
 #define Ping_magic_tag                           1
 #define UartData_data_tag                        1
-#define WriteWord_address_tag                    1
-#define WriteWord_data_tag                       2
 #define Request_ping_tag                         1
 #define Request_writeWord_tag                    2
 #define Request_info_tag                         3
 #define Request_setupSlots_tag                   4
 #define Request_inject_tag                       5
+#define Request_readWord_tag                     6
 #define Response_ping_tag                        1
 #define Response_info_tag                        2
 #define Response_ack_tag                         3
 #define Response_ltxd_tag                        4
 #define Response_lrxd_tag                        5
+#define Response_inject_tag                      6
+#define Response_readWord_tag                    7
 
 /* Struct field encoding specification for nanopb */
 #define Request_FIELDLIST(X, a) \
@@ -119,21 +126,25 @@ X(a, STATIC,   ONEOF,    MESSAGE,  (payload,ping,payload.ping),   1) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (payload,writeWord,payload.writeWord),   2) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (payload,info,payload.info),   3) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (payload,setupSlots,payload.setupSlots),   4) \
-X(a, STATIC,   ONEOF,    MESSAGE,  (payload,inject,payload.inject),   5)
+X(a, STATIC,   ONEOF,    MESSAGE,  (payload,inject,payload.inject),   5) \
+X(a, STATIC,   ONEOF,    MESSAGE,  (payload,readWord,payload.readWord),   6)
 #define Request_CALLBACK NULL
 #define Request_DEFAULT NULL
 #define Request_payload_ping_MSGTYPE Ping
-#define Request_payload_writeWord_MSGTYPE WriteWord
+#define Request_payload_writeWord_MSGTYPE MemOp
 #define Request_payload_info_MSGTYPE RequestInfo
 #define Request_payload_setupSlots_MSGTYPE SetupSlots
 #define Request_payload_inject_MSGTYPE InjectUART
+#define Request_payload_readWord_MSGTYPE MemOp
 
 #define Response_FIELDLIST(X, a) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (payload,ping,payload.ping),   1) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (payload,info,payload.info),   2) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (payload,ack,payload.ack),   3) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (payload,ltxd,payload.ltxd),   4) \
-X(a, STATIC,   ONEOF,    MESSAGE,  (payload,lrxd,payload.lrxd),   5)
+X(a, STATIC,   ONEOF,    MESSAGE,  (payload,lrxd,payload.lrxd),   5) \
+X(a, STATIC,   ONEOF,    MESSAGE,  (payload,inject,payload.inject),   6) \
+X(a, STATIC,   ONEOF,    MESSAGE,  (payload,readWord,payload.readWord),   7)
 #define Response_CALLBACK NULL
 #define Response_DEFAULT NULL
 #define Response_payload_ping_MSGTYPE Ping
@@ -141,17 +152,19 @@ X(a, STATIC,   ONEOF,    MESSAGE,  (payload,lrxd,payload.lrxd),   5)
 #define Response_payload_ack_MSGTYPE Ack
 #define Response_payload_ltxd_MSGTYPE UartData
 #define Response_payload_lrxd_MSGTYPE UartData
+#define Response_payload_inject_MSGTYPE InjectUART
+#define Response_payload_readWord_MSGTYPE MemOp
 
 #define Ping_FIELDLIST(X, a) \
 X(a, STATIC,   REQUIRED, FIXED_LENGTH_BYTES, magic,             1)
 #define Ping_CALLBACK NULL
 #define Ping_DEFAULT NULL
 
-#define WriteWord_FIELDLIST(X, a) \
+#define MemOp_FIELDLIST(X, a) \
 X(a, STATIC,   REQUIRED, UINT32,   address,           1) \
-X(a, STATIC,   REQUIRED, UINT32,   data,              2)
-#define WriteWord_CALLBACK NULL
-#define WriteWord_DEFAULT NULL
+X(a, STATIC,   OPTIONAL, UINT32,   data,              2)
+#define MemOp_CALLBACK NULL
+#define MemOp_DEFAULT NULL
 
 #define RequestInfo_FIELDLIST(X, a) \
 
@@ -186,7 +199,7 @@ X(a, STATIC,   REQUIRED, BYTES,    data,              1)
 extern const pb_msgdesc_t Request_msg;
 extern const pb_msgdesc_t Response_msg;
 extern const pb_msgdesc_t Ping_msg;
-extern const pb_msgdesc_t WriteWord_msg;
+extern const pb_msgdesc_t MemOp_msg;
 extern const pb_msgdesc_t RequestInfo_msg;
 extern const pb_msgdesc_t DeviceInfo_msg;
 extern const pb_msgdesc_t Ack_msg;
@@ -198,7 +211,7 @@ extern const pb_msgdesc_t UartData_msg;
 #define Request_fields &Request_msg
 #define Response_fields &Response_msg
 #define Ping_fields &Ping_msg
-#define WriteWord_fields &WriteWord_msg
+#define MemOp_fields &MemOp_msg
 #define RequestInfo_fields &RequestInfo_msg
 #define DeviceInfo_fields &DeviceInfo_msg
 #define Ack_fields &Ack_msg
@@ -210,13 +223,13 @@ extern const pb_msgdesc_t UartData_msg;
 #define Ack_size                                 0
 #define DeviceInfo_size                          8
 #define InjectUART_size                          34
+#define MemOp_size                               12
 #define Ping_size                                8
 #define RequestInfo_size                         0
 #define Request_size                             36
 #define Response_size                            68
 #define SetupSlots_size                          0
 #define UartData_size                            66
-#define WriteWord_size                           12
 
 #ifdef __cplusplus
 } /* extern "C" */

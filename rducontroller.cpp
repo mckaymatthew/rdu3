@@ -56,6 +56,30 @@ void RDUController::stepState() {
         nextState = SetFrameRate();
         break;
     case RDU_SetFrameRate_Wait:
+        nextState = SpecialWaitAck(currentState, RDU_Read_MainDial);
+        break;
+    case RDU_Read_MainDial:
+        nextState = ReadReg(MAIN_DAIL_OFFSET, (uint32_t*)&m_main_dial_offset, RDU_Read_MainDial_Wait);
+        break;
+    case RDU_Read_MainDial_Wait:
+        nextState = SpecialWaitAck(currentState, RDU_Read_MultiDial);
+        break;
+    case RDU_Read_MultiDial:
+        nextState = ReadReg(MULTI_DIAL_OFFSET, (uint32_t*)&m_multi_dial_offset, RDU_Read_MultiDial_Wait);
+        break;
+    case RDU_Read_MultiDial_Wait:
+        nextState = SpecialWaitAck(currentState, RDU_Read_BPFIn);
+        break;
+    case RDU_Read_BPFIn:
+        nextState = ReadReg(BPF_IN_OFFSET, (uint32_t*)&m_bpf_in_dial_offset, RDU_Read_BPFIn_Wait);
+        break;
+    case RDU_Read_BPFIn_Wait:
+        nextState = SpecialWaitAck(currentState, RDU_Read_BPFOut);
+        break;
+    case RDU_Read_BPFOut:
+        nextState = ReadReg(BPF_OUT_OFFSET, (uint32_t*)&m_bpf_out_dial_offset, RDU_Read_BPFOut_Wait);
+        break;
+    case RDU_Read_BPFOut_Wait:
         nextState = SpecialWaitAck(currentState, RDU_EnableClock);
         break;
     case RDU_EnableClock:
@@ -196,6 +220,7 @@ RDUController::state RDUController::Ping() {
 }
 
 
+
 RDUController::state RDUController::Error() {
     emit notifyUserOfState(QString("Error - Disconnect"));
     qInfo() << (QString("Error occured. Socket state: %1, errors: %2").arg(socket.state()).arg(socket.errorString()));
@@ -220,6 +245,16 @@ RDUController::state RDUController::SpecialWaitAck(state waiting, state success)
     } else {
         return waiting;
     }
+}
+
+RDUController::state RDUController::ReadReg(uint32_t addr, uint32_t *dst, RDUController::state stateNext) {
+    Request r = Request_init_default;
+    r.which_payload = Request_readWord_tag;
+    r.payload.readWord.address = addr;
+    regReadDestination = dst;
+    emit notifyUserOfState(QString("Read register %1").arg(addr,8,16,QChar('0')));
+    writeRequest(r);
+    return stateNext;
 }
 
 void RDUController::readyRead() {
@@ -251,6 +286,18 @@ void RDUController::readyRead() {
                     }
                     if(msg_resp.which_payload == Response_ack_tag) {
                         haveAck = true;
+                    }
+                    if(msg_resp.which_payload == Response_readWord_tag) {
+                        if(regReadDestination != nullptr) {
+                            if(msg_resp.payload.readWord.has_data) {
+                                *regReadDestination = msg_resp.payload.readWord.data;
+                                haveAck = true;
+                            } else {
+                                qWarning() << QString("Got unexpected empty read word response for %1").arg(msg_resp.payload.readWord.address,8,16,QChar('0'));
+                            }
+                        } else {
+                            qWarning() << QString("Got unexpected read word response for %1").arg(msg_resp.payload.readWord.address,8,16,QChar('0'));
+                        }
                     }
                     if(msg_resp.which_payload == Response_lrxd_tag) {
                         QByteArray lrxd((char *)msg_resp.payload.lrxd.data.bytes, msg_resp.payload.lrxd.data.size);
@@ -299,11 +346,13 @@ void RDUController::writeWord(uint32_t addr, uint32_t data) {
     Request r = Request_init_default;
     r.which_payload = Request_writeWord_tag;
     r.payload.writeWord.address = addr;
+    r.payload.writeWord.has_data = true;
     r.payload.writeWord.data = data;
 
-    qDebug() << (QString("Write 0x%1 to 0x%2.").arg(addr,8,16,QChar('0')).arg(data,8,16,QChar('0')));
+    qDebug() << (QString("Write 0x%1 to 0x%2.").arg(data,8,16,QChar('0')).arg(addr,8,16,QChar('0')));
     writeRequest(r);
 }
+
 void RDUController::setFrameDivisor(uint8_t ndivisior) {
     this->divisor = ndivisior;
     writeWord(FPS_DIVISOR,ndivisior);
@@ -338,6 +387,20 @@ void RDUController::spinBPFOutDial(int ticks) {
         writeWord(BPF_OUT_OFFSET,m_bpf_out_dial_offset);
     }
 }
+
+void RDUController::adjustVolume(uint8_t value) {
+    emit notifyUserOfAction(QString("Volume Set %1").arg(value));
+    QByteArray injectParameter = QByteArray::fromHex("fe1e00fd");
+    injectParameter[2] = value;
+    writeInject(injectParameter);
+}
+void RDUController::adjustRfSql(uint8_t value) {
+    emit notifyUserOfAction(QString("AfSql Set %1").arg(value));
+    QByteArray injectParameter = QByteArray::fromHex("fe1f00fd");
+    injectParameter[2] = value;
+    writeInject(injectParameter);
+}
+
 
 void RDUController::injectTouch(QPoint l) {
     if(l.x() < 0 || l.x() > 480) {

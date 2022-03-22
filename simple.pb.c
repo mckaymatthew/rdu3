@@ -15,7 +15,7 @@ PB_BIND(Response, Response, AUTO)
 PB_BIND(Ping, Ping, AUTO)
 
 
-PB_BIND(WriteWord, WriteWord, AUTO)
+PB_BIND(MemOp, MemOp, AUTO)
 
 
 PB_BIND(RequestInfo, RequestInfo, AUTO)

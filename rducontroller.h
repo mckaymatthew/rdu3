@@ -26,6 +26,8 @@ public slots:
     void spinMainDial(int ticks);
     void spinBPFInDial(int ticks);
     void spinBPFOutDial(int ticks);
+    void adjustVolume(uint8_t value);
+    void adjustRfSql(uint8_t value);
     void setFrameDivisor(uint8_t ndivisor);
 
     //Debuging interfaces
@@ -73,6 +75,14 @@ private:
         RDU_SetupHostData_Wait,
         RDU_SetFrameRate,
         RDU_SetFrameRate_Wait,
+        RDU_Read_MainDial,
+        RDU_Read_MainDial_Wait,
+        RDU_Read_MultiDial,
+        RDU_Read_MultiDial_Wait,
+        RDU_Read_BPFIn,
+        RDU_Read_BPFIn_Wait,
+        RDU_Read_BPFOut,
+        RDU_Read_BPFOut_Wait,
         RDU_EnableClock,
         RDU_EnableClock_Wait,
         RDU_Connected,
@@ -92,6 +102,7 @@ private:
     state Connected();
     state Ping();
     state Error();
+    state ReadReg(uint32_t reg, uint32_t *dst, state stateNext);
 
     state SpecialWaitAck(state remain, state acked);
     state nextState = RDU_Query_mDNS;
@@ -99,6 +110,7 @@ private:
     state previousState = RDU_Idle;
     QElapsedTimer timeInState;
     bool haveAck = false;
+    uint32_t* regReadDestination = nullptr;
 };
 
 #endif // RDUCONTROLLER_H
