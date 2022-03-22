@@ -132,12 +132,18 @@ MainWindow::MainWindow(QWidget *parent)
 
     connect(this->ui->mainDial, &QDial::valueChanged, &this->m_mainDialAccumulator, &Accumulator::input);
     connect(this->ui->multiDial, &QDial::valueChanged, &this->m_multiDialAccumulator, &Accumulator::input);
+    connect(this->ui->bpf_in, &QDial::valueChanged, &this->m_bpfInAccumulator, &Accumulator::input);
+    connect(this->ui->bpf_out, &QDial::valueChanged, &this->m_bpfOutAccumulator, &Accumulator::input);
 
     connect(&m_mainDialAccumulator, &Accumulator::output, &m_controller, &RDUController::spinMainDial);
     connect(&m_multiDialAccumulator, &Accumulator::output, &m_controller, &RDUController::spinMultiDial);
+    connect(&m_bpfInAccumulator, &Accumulator::output, &m_controller, &RDUController::spinBPFInDial);
+    connect(&m_bpfOutAccumulator, &Accumulator::output, &m_controller, &RDUController::spinBPFOutDial);
 
     m_mainDialAccumulator.setMax(360);
     m_multiDialAccumulator.setMax(20);
+    m_bpfInAccumulator.setMax(20);
+    m_bpfOutAccumulator.setMax(20);
 
 }
 

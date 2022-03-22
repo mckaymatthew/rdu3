@@ -73,6 +73,8 @@ private:
     QString m_stateLast;
     Accumulator m_mainDialAccumulator;
     Accumulator m_multiDialAccumulator;
+    Accumulator m_bpfInAccumulator;
+    Accumulator m_bpfOutAccumulator;
 
     int m_dialLast = 0;
 };

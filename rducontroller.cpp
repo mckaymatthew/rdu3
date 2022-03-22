@@ -324,6 +324,20 @@ void RDUController::spinMainDial(int ticks) {
         writeWord(MAIN_DAIL_OFFSET,m_main_dial_offset);
     }
 }
+void RDUController::spinBPFInDial(int ticks) {
+    m_bpf_in_dial_offset = m_bpf_in_dial_offset + ticks;
+    emit notifyUserOfAction(QString("BPF Inner Dial %1 (abs: %2)").arg(ticks).arg(m_bpf_in_dial_offset));
+    if(socket.isValid()) {
+        writeWord(BPF_IN_OFFSET,m_bpf_in_dial_offset);
+    }
+}
+void RDUController::spinBPFOutDial(int ticks) {
+    m_bpf_out_dial_offset = m_bpf_out_dial_offset + ticks;
+    emit notifyUserOfAction(QString("BPF Outer Dial %1 (abs: %2)").arg(ticks).arg(m_bpf_out_dial_offset));
+    if(socket.isValid()) {
+        writeWord(BPF_OUT_OFFSET,m_bpf_out_dial_offset);
+    }
+}
 
 void RDUController::injectTouch(QPoint l) {
     if(l.x() < 0 || l.x() > 480) {

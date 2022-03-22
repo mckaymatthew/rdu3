@@ -24,6 +24,8 @@ public slots:
     void injectTouchRelease();
     void spinMultiDial(int ticks);
     void spinMainDial(int ticks);
+    void spinBPFInDial(int ticks);
+    void spinBPFOutDial(int ticks);
     void setFrameDivisor(uint8_t ndivisor);
 
     //Debuging interfaces
@@ -52,6 +54,8 @@ private:
     uint8_t divisor = 0;
     int m_main_dial_offset = 0;
     int m_multi_dial_offset = 0;
+    int m_bpf_in_dial_offset = 0;
+    int m_bpf_out_dial_offset = 0;
 
     QMdnsEngine::Server mServer;
     QMdnsEngine::Resolver *mResolver = nullptr;
