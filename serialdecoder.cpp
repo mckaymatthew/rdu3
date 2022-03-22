@@ -1,4 +1,5 @@
 #include "serialdecoder.h"
+#include <QDebug>
 
 SerialDecoder::SerialDecoder(QObject *parent) : QObject(parent)
 {
@@ -16,9 +17,15 @@ void SerialDecoder::processByte(unsigned char byte) {
         searching = false;
     } else if(!searching && byte == 0xFD) {
         //Got whole thing.
-        handlePayload(payload);
-        searching = true;
-        payload.clear();
+        if(payload.length() == 0) {
+            qWarning() << "Empty payload?";
+            searching = true;
+            payload.clear();
+        } else {
+            handlePayload(payload);
+            searching = true;
+            payload.clear();
+        }
     } else if (!searching) {
         payload.append(byte);
     }

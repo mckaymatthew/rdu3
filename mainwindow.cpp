@@ -115,7 +115,6 @@ MainWindow::MainWindow(QWidget *parent)
 
         QCoreApplication::postEvent(this->ui->mainDial, e->clone());
     });
-    connect(&m_accumulatorDial, &Accumulator::output, &m_controller, &RDUController::spinMainDial);
 
     connect(this->ui->actionInhibit_Transmit, &QAction::triggered, std::bind(&RDUController::writeWord, &m_controller, CLK_GATE, 0));
     connect(this->ui->actionInhibit_Transmit, &QAction::triggered, std::bind(&MainWindow::updateAction, this, "Tx Inhibit"));
@@ -129,6 +128,17 @@ MainWindow::MainWindow(QWidget *parent)
      //unaligned write causes CPU to fault
     connect(this->ui->actionHaltSOC, &QAction::triggered, std::bind(&RDUController::writeWord, &m_controller, CPU_RESET+1, 9));
     connect(this->ui->actionHaltSOC, &QAction::triggered, std::bind(&MainWindow::updateAction, this, "Halt SOC"));
+
+
+    connect(this->ui->mainDial, &QDial::valueChanged, &this->m_mainDialAccumulator, &Accumulator::input);
+    connect(this->ui->multiDial, &QDial::valueChanged, &this->m_multiDialAccumulator, &Accumulator::input);
+
+    connect(&m_mainDialAccumulator, &Accumulator::output, &m_controller, &RDUController::spinMainDial);
+    connect(&m_multiDialAccumulator, &Accumulator::output, &m_controller, &RDUController::spinMultiDial);
+
+    m_mainDialAccumulator.setMax(360);
+    m_multiDialAccumulator.setMax(20);
+
 }
 
 
@@ -273,18 +283,3 @@ void MainWindow::on_actionOpen_log_file_triggered()
     qInfo() << QString("Requesting OS to open %1").arg(logPath);
     QDesktopServices::openUrl(logPath);
 }
-
-void MainWindow::on_mainDial_valueChanged(int value)
-{
-    auto diff = value - m_dialLast;
-    if(diff < -180) {
-        diff = diff + 360;
-    }
-    if(diff > 180) {
-        diff = diff - 360;
-    }
-    m_accumulatorDial.input(diff);
-    qInfo() << QString("Main Dial Slider Value Changed %1, diff %2").arg(value,3).arg(diff,3);
-    m_dialLast = value;
-}
-

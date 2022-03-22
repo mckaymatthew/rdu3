@@ -259,7 +259,7 @@ void RDUController::readyRead() {
                     }
                     if(msg_resp.which_payload == Response_ltxd_tag) {
                         QByteArray ltxd((char *)msg_resp.payload.ltxd.data.bytes, msg_resp.payload.ltxd.data.size);
-                        emit newLrxdBytes(ltxd);
+                        emit newLtxdBytes(ltxd);
                     }
                 }
             }
@@ -309,11 +309,19 @@ void RDUController::setFrameDivisor(uint8_t ndivisior) {
     writeWord(FPS_DIVISOR,ndivisior);
 }
 
-void RDUController::spinMainDial(int ticks) {
-    emit notifyUserOfAction(QString("Dial %1").arg(ticks));
-    m_dial_offset = m_dial_offset + ticks;
+void RDUController::spinMultiDial(int ticks) {
+    m_multi_dial_offset = m_multi_dial_offset + ticks;
+    emit notifyUserOfAction(QString("Multi Dial %1 (abs: %2)").arg(ticks).arg(m_multi_dial_offset));
     if(socket.isValid()) {
-        writeWord(MAIN_DAIL_OFFSET,m_dial_offset);
+        writeWord(MULTI_DIAL_OFFSET,m_multi_dial_offset);
+    }
+
+}
+void RDUController::spinMainDial(int ticks) {
+    m_main_dial_offset = m_main_dial_offset + ticks;
+    emit notifyUserOfAction(QString("Main Dial %1 (abs: %2)").arg(ticks).arg(m_main_dial_offset));
+    if(socket.isValid()) {
+        writeWord(MAIN_DAIL_OFFSET,m_main_dial_offset);
     }
 }
 

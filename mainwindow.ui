@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>800</width>
+    <width>825</width>
     <height>364</height>
    </rect>
   </property>
@@ -577,9 +577,9 @@ R</string>
                   </widget>
                  </item>
                  <item row="2" column="0" rowspan="3">
-                  <widget class="QDial" name="dial_5">
+                  <widget class="QDial" name="multiDial">
                    <property name="enabled">
-                    <bool>false</bool>
+                    <bool>true</bool>
                    </property>
                    <property name="minimumSize">
                     <size>
@@ -587,8 +587,23 @@ R</string>
                      <height>0</height>
                     </size>
                    </property>
-                   <property name="orientation">
-                    <enum>Qt::Horizontal</enum>
+                   <property name="minimum">
+                    <number>0</number>
+                   </property>
+                   <property name="maximum">
+                    <number>20</number>
+                   </property>
+                   <property name="pageStep">
+                    <number>1</number>
+                   </property>
+                   <property name="wrapping">
+                    <bool>true</bool>
+                   </property>
+                   <property name="notchTarget">
+                    <double>1.000000000000000</double>
+                   </property>
+                   <property name="notchesVisible">
+                    <bool>true</bool>
                    </property>
                   </widget>
                  </item>
@@ -961,8 +976,8 @@ R</string>
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>800</width>
-     <height>24</height>
+     <width>825</width>
+     <height>21</height>
     </rect>
    </property>
    <property name="sizePolicy">

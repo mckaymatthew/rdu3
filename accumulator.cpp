@@ -14,5 +14,19 @@ void Accumulator::timerEvent(QTimerEvent *event) {
 }
 
 void Accumulator::input(int items) {
-    accumulated = accumulated + items;
+    auto diff = items - lastValue;
+    auto half = (maxValue/2);
+    if(diff < -half) {
+        diff = diff + maxValue;
+    }
+    if(diff > half) {
+        diff = diff - maxValue;
+    }
+    lastValue = items;
+
+    accumulated = accumulated + diff;
+}
+
+void Accumulator::setMax(int max) {
+    maxValue = max;
 }

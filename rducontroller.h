@@ -22,6 +22,7 @@ public slots:
     //Well understood events
     void injectTouch(QPoint l);
     void injectTouchRelease();
+    void spinMultiDial(int ticks);
     void spinMainDial(int ticks);
     void setFrameDivisor(uint8_t ndivisor);
 
@@ -49,7 +50,8 @@ private:
     int msg_resp_buffer_write = -1;
     int msg_resp_buffer_idx = 0;
     uint8_t divisor = 0;
-    int m_dial_offset = 0;
+    int m_main_dial_offset = 0;
+    int m_multi_dial_offset = 0;
 
     QMdnsEngine::Server mServer;
     QMdnsEngine::Resolver *mResolver = nullptr;

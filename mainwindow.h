@@ -54,7 +54,6 @@ private slots:
     void on_actionGenerate_App_Crash_triggered();
 
     void on_actionOpen_log_file_triggered();
-    void on_mainDial_valueChanged(int value);
 
 protected:
     void closeEvent(QCloseEvent *event) override;
@@ -72,7 +71,8 @@ private:
     QList<RenderLabel*> m_zones;
     QList<QAction*> m_fpsActions;
     QString m_stateLast;
-    Accumulator m_accumulatorDial;
+    Accumulator m_mainDialAccumulator;
+    Accumulator m_multiDialAccumulator;
 
     int m_dialLast = 0;
 };
