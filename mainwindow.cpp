@@ -28,6 +28,8 @@ MainWindow::MainWindow(QWidget *parent)
 {
 
     ui->setupUi(this);
+    initalQss = this->styleSheet();
+
     QThread::currentThread()->setObjectName("GUI Thread");
 
     m_workerThread = new QThread();
@@ -103,6 +105,16 @@ MainWindow::MainWindow(QWidget *parent)
             std::bind(&MainWindow::changedViewport, this, 2,
                  this->ui->page_screen, QList<QWidget*>({this->ui->page_all, this->ui->page_minimal})));
 
+    auto viewport = m_settings.value("viewport",0).toInt();
+    if(viewport == 0) {
+        this->ui->actionFull->activate(QAction::ActionEvent::Trigger);
+    }
+    if(viewport == 1) {
+        this->ui->actionMinimal->activate(QAction::ActionEvent::Trigger);
+    }
+    if(viewport == 2) {
+        this->ui->actionScreen_Only->activate(QAction::ActionEvent::Trigger);
+    }
 
     //Connect action to make huge csv files..
     connect(this->ui->actionLog_Network_Metadata, &QAction::toggled, m_worker, &RDUWorker::logPacketData);
@@ -148,6 +160,9 @@ MainWindow::MainWindow(QWidget *parent)
     m_bpfInAccumulator.setMax(this->ui->bpf_in->maximum() + 1);
     m_bpfOutAccumulator.setMax(this->ui->bpf_out->maximum() + 1);
 
+    connect(&m_preferences, &QDialog::accepted, this, &MainWindow::settingsChanged);
+    settingsChanged();
+
     QTimer::singleShot(5,[this](){
         this->resize(this->minimumSizeHint());
     });
@@ -157,7 +172,6 @@ MainWindow::MainWindow(QWidget *parent)
 MainWindow::~MainWindow()
 {
     m_controller.writeWord(CLK_GATE,0);
-
     m_workerThread->quit();
     m_workerThread->wait();
     delete ui;
@@ -184,8 +198,8 @@ void MainWindow::workerFramePassthrough(QByteArray* f) {
 void MainWindow::closeEvent(QCloseEvent *event)
 {
 
-    QSettings settings("KE0PSL", "RDU3");
-    qInfo() << "Close event, save parameters to " << settings.fileName();
+//    QSettings settings("KE0PSL", "RDU3");
+//    qInfo() << "Close event, save parameters to " << settings.fileName();
 //    settings.setValue("mainWindow/geometry", saveGeometry());
 //    settings.setValue("mainWindow/stackIndex", this->ui->stackedWidget->currentIndex());
 
@@ -271,6 +285,7 @@ RenderLabel* MainWindow::whichLabel() {
 
 void MainWindow::changedViewport(int index, QWidget* active, QList<QWidget*> inactive) {
     this->ui->stackedWidget->setCurrentIndex(index);
+    m_settings.setValue("viewport",index);
     active->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     std::for_each(inactive.begin(), inactive.end(), [](QWidget* off){
         off->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
@@ -295,3 +310,14 @@ void MainWindow::on_actionOpen_log_file_triggered()
     qInfo() << QString("Requesting OS to open %1").arg(logPath);
     QDesktopServices::openUrl(logPath);
 }
+
+void MainWindow::on_actionSettings_triggered()
+{
+    this->m_preferences.setModal(true);
+    this->m_preferences.open();
+}
+void MainWindow::settingsChanged() {
+    int maxVal = this->m_settings.value("maxVolume",(250/4)).toInt();
+    this->ui->volume->setMaximum(maxVal);
+}
+

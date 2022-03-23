@@ -23,6 +23,7 @@
 #include "lrxddecoder.h"
 #include <QList>
 #include "rotaryaccumulator.h"
+#include "preferences.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -54,6 +55,9 @@ private slots:
     void on_actionGenerate_App_Crash_triggered();
 
     void on_actionOpen_log_file_triggered();
+    void on_actionSettings_triggered();
+
+    void settingsChanged();
 
 protected:
     void closeEvent(QCloseEvent *event) override;
@@ -62,6 +66,7 @@ private:
 
     Ui::MainWindow *ui;
     QSettings m_settings;
+    Preferences m_preferences;
     QThread* m_workerThread;
     RDUWorker* m_worker;
     RDUController m_controller;
@@ -75,6 +80,7 @@ private:
     RotaryAccumulator m_multiDialAccumulator;
     RotaryAccumulator m_bpfInAccumulator;
     RotaryAccumulator m_bpfOutAccumulator;
+    QString initalQss;
 
     int m_dialLast = 0;
 };

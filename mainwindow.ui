@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>825</width>
-    <height>361</height>
+    <width>844</width>
+    <height>338</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -162,11 +162,8 @@ QLabel {
               <property name="bottomMargin">
                <number>0</number>
               </property>
-              <property name="horizontalSpacing">
-               <number>2</number>
-              </property>
-              <property name="verticalSpacing">
-               <number>10</number>
+              <property name="spacing">
+               <number>0</number>
               </property>
               <item row="1" column="2">
                <widget class="QWidget" name="widget_6" native="true">
@@ -240,6 +237,12 @@ QLabel {
                  </item>
                  <item row="1" column="1" rowspan="2">
                   <widget class="QPushButton" name="pushButton_3">
+                   <property name="sizePolicy">
+                    <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
+                     <horstretch>0</horstretch>
+                     <verstretch>0</verstretch>
+                    </sizepolicy>
+                   </property>
                    <property name="text">
                     <string>C
 L
@@ -266,19 +269,12 @@ R</string>
                   <number>0</number>
                  </property>
                  <property name="spacing">
-                  <number>2</number>
+                  <number>0</number>
                  </property>
-                 <item row="1" column="0">
-                  <widget class="QPushButton" name="fpb_NR_0e08">
+                 <item row="1" column="1">
+                  <widget class="QPushButton" name="fpb_NB_0e04">
                    <property name="text">
-                    <string>NR</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="0" column="0">
-                  <widget class="QPushButton" name="fpb_PAmpAtt_0e01">
-                   <property name="text">
-                    <string>P.AMP/ATT</string>
+                    <string>NB</string>
                    </property>
                   </widget>
                  </item>
@@ -289,10 +285,17 @@ R</string>
                    </property>
                   </widget>
                  </item>
-                 <item row="1" column="1">
-                  <widget class="QPushButton" name="fpb_NB_0e04">
+                 <item row="1" column="0">
+                  <widget class="QPushButton" name="fpb_NR_0e08">
                    <property name="text">
-                    <string>NB</string>
+                    <string>NR</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="0" column="0">
+                  <widget class="QPushButton" name="fpb_PAmpAtt_0e01">
+                   <property name="text">
+                    <string>P.AMP</string>
                    </property>
                   </widget>
                  </item>
@@ -303,7 +306,7 @@ R</string>
                <widget class="QWidget" name="widget_3" native="true">
                 <layout class="QVBoxLayout" name="verticalLayout">
                  <property name="spacing">
-                  <number>2</number>
+                  <number>0</number>
                  </property>
                  <property name="leftMargin">
                   <number>0</number>
@@ -570,7 +573,7 @@ R</string>
                   <widget class="QPushButton" name="fpb_Clear_0f40">
                    <property name="minimumSize">
                     <size>
-                     <width>0</width>
+                     <width>53</width>
                      <height>27</height>
                     </size>
                    </property>
@@ -596,7 +599,7 @@ R</string>
                   <widget class="QPushButton" name="fpb_MDown_0f08">
                    <property name="minimumSize">
                     <size>
-                     <width>0</width>
+                     <width>53</width>
                      <height>27</height>
                     </size>
                    </property>
@@ -609,7 +612,7 @@ R</string>
                   <widget class="QPushButton" name="fpb_AB_0f01">
                    <property name="minimumSize">
                     <size>
-                     <width>0</width>
+                     <width>53</width>
                      <height>27</height>
                     </size>
                    </property>
@@ -666,7 +669,7 @@ R</string>
                   <widget class="QPushButton" name="fpb_MPad_0e80">
                    <property name="minimumSize">
                     <size>
-                     <width>0</width>
+                     <width>53</width>
                      <height>27</height>
                     </size>
                    </property>
@@ -703,6 +706,12 @@ R</string>
                  </item>
                  <item row="4" column="2">
                   <widget class="QPushButton" name="fpb_Tuner_0e20">
+                   <property name="minimumSize">
+                    <size>
+                     <width>53</width>
+                     <height>27</height>
+                    </size>
+                   </property>
                    <property name="text">
                     <string>TUNE</string>
                    </property>
@@ -725,7 +734,7 @@ R</string>
                   <widget class="QPushButton" name="fpb_MUp_0f04">
                    <property name="minimumSize">
                     <size>
-                     <width>0</width>
+                     <width>53</width>
                      <height>27</height>
                     </size>
                    </property>
@@ -739,8 +748,14 @@ R</string>
                    <property name="enabled">
                     <bool>true</bool>
                    </property>
+                   <property name="minimumSize">
+                    <size>
+                     <width>53</width>
+                     <height>27</height>
+                    </size>
+                   </property>
                    <property name="text">
-                    <string>SPEECH</string>
+                    <string>SP LCK</string>
                    </property>
                   </widget>
                  </item>
@@ -748,6 +763,12 @@ R</string>
                   <widget class="QPushButton" name="fpb_XFC_0d80">
                    <property name="enabled">
                     <bool>true</bool>
+                   </property>
+                   <property name="minimumSize">
+                    <size>
+                     <width>53</width>
+                     <height>27</height>
+                    </size>
                    </property>
                    <property name="text">
                     <string>XFC</string>
@@ -1018,7 +1039,7 @@ R</string>
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>825</width>
+     <width>844</width>
      <height>21</height>
     </rect>
    </property>
@@ -1046,6 +1067,7 @@ R</string>
     <addaction name="menuFramerate"/>
     <addaction name="actionSave_PNG"/>
     <addaction name="actionOpen_log_file"/>
+    <addaction name="actionSettings"/>
    </widget>
    <widget class="QMenu" name="menuDebug">
     <property name="title">
@@ -1246,6 +1268,11 @@ R</string>
   <action name="actionOpen_log_file">
    <property name="text">
     <string>Open log file</string>
+   </property>
+  </action>
+  <action name="actionSettings">
+   <property name="text">
+    <string>Settings</string>
    </property>
   </action>
  </widget>

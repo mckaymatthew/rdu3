@@ -10,6 +10,7 @@ RDUController::RDUController(QObject *parent)
     , msg_resp_buffer(Response_size,'\0')
     , msg_resp_buffer_write(-1)
     , msg_resp_buffer_idx(0)
+    , m_settings("KE0PSL", "RDU3")
 
 {
     connect(&socket, &QTcpSocket::readyRead,this, &RDUController::readyRead);
@@ -27,6 +28,9 @@ void RDUController::stepState() {
     switch(currentState) {
     case RDU_Idle:
         nextState = idle();
+        break;
+    case RDU_DecideLookupMethod:
+        nextState = DecideLookupMethod();
         break;
     case RDU_Query_mDNS:
         nextState = Query_mDNS();
@@ -110,9 +114,19 @@ void RDUController::stepState() {
 RDUController::state RDUController::idle() {
     emit notifyUserOfState(QString("Idle"));
     emit RDUReady(false);
-    return RDUController::state::RDU_Query_mDNS;
+    return RDUController::state::RDU_DecideLookupMethod;
 }
 
+RDUController::state RDUController::DecideLookupMethod() {
+    auto deviceIp = this->m_settings.value("deviceIp","0.0.0.0").toString();
+    m_addrAlt = QHostAddress(deviceIp);
+    if(m_addrAlt == QHostAddress::AnyIPv4) {
+        return RDUController::state::RDU_Query_mDNS;
+    } else {
+        return RDUController::state::RDU_ConnectRemote;
+    }
+
+}
 RDUController::state RDUController::Query_mDNS() {
     if(mResolver != nullptr) {
         delete mResolver;
@@ -144,7 +158,7 @@ RDUController::state RDUController::Query_mDNS_Wait() {
 }
 
 RDUController::state RDUController::ConnectRemote() {
-    emit notifyUserOfState(QString("Located IC7300, Connecting"));
+    emit notifyUserOfState(QString("Connecting to %1").arg(m_addrAlt.toString()));
     qInfo() << (QString("Found RDU at %1, connecting...").arg(m_addrAlt.toString()));
     socket.connectToHost(m_addrAlt, 4242);
     return RDUController::state::RDU_ConnectRemote_Wait;

@@ -11,6 +11,7 @@
 #include <qmdnsengine/resolver.h>
 #include <QElapsedTimer>
 #include <QPoint>
+#include <QSettings>
 
 
 class RDUController : public QObject
@@ -65,6 +66,7 @@ private:
 
     enum state {
         RDU_Idle,
+        RDU_DecideLookupMethod,
         RDU_Query_mDNS,
         RDU_Query_mDNS_Wait,
         RDU_ConnectRemote,
@@ -91,6 +93,7 @@ private:
         RDU_ErrorState,
     };
     state idle();
+    state DecideLookupMethod();
     state Query_mDNS();
     state Query_mDNS_Wait();
     state ConnectRemote();
@@ -105,12 +108,13 @@ private:
     state ReadReg(uint32_t reg, uint32_t *dst, state stateNext);
 
     state SpecialWaitAck(state remain, state acked);
-    state nextState = RDU_Query_mDNS;
+    state nextState = RDU_Idle;
     state currentState = RDU_Idle;
     state previousState = RDU_Idle;
     QElapsedTimer timeInState;
     bool haveAck = false;
     uint32_t* regReadDestination = nullptr;
+    QSettings m_settings;
 };
 
 #endif // RDUCONTROLLER_H

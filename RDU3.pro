@@ -10,6 +10,7 @@ CONFIG += c++11
 SOURCES += \
     lrxddecoder.cpp \
     paths.cpp \
+    preferences.cpp \
     renderlabel.cpp \
     rotaryaccumulator.cpp \
     serialdecoder.cpp \
@@ -44,6 +45,7 @@ SOURCES += \
 HEADERS += \
     lrxddecoder.h \
     paths.h \
+    preferences.h \
     renderlabel.h \
     rotaryaccumulator.h \
     serialdecoder.h \
@@ -90,7 +92,8 @@ HEADERS += \
     rduworker.h
 
 FORMS += \
-    mainwindow.ui
+    mainwindow.ui \
+    preferences.ui
 
 INCLUDEPATH += $$PWD/qMDNS/src/
 INCLUDEPATH += $$PWD/nanopb

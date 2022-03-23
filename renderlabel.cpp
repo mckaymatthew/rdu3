@@ -90,8 +90,8 @@ void RenderLabel::paintEvent(QPaintEvent*) {
             ((59.0* previousRender) +
             (renderTime.nsecsElapsed() / 1000000)) / 60;
     previousFPS =
-            ((59.0* previousFPS) +
-            (1000000000.0/fpsTime.nsecsElapsed())) / 60;
+            ((9.0* previousFPS) +
+            (1000000000.0/fpsTime.nsecsElapsed())) / 10;
     fpsTime.restart();
 
     if(stats) {
