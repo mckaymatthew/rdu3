@@ -91,16 +91,6 @@
           <string>IC7300 Locator</string>
          </property>
          <layout class="QGridLayout" name="gridLayout">
-          <item row="0" column="0">
-           <widget class="QRadioButton" name="lookupAutomatic">
-            <property name="text">
-             <string>Automatic (mDNS)</string>
-            </property>
-            <property name="checked">
-             <bool>true</bool>
-            </property>
-           </widget>
-          </item>
           <item row="1" column="1">
            <widget class="QLineEdit" name="deviceIp">
             <property name="enabled">
@@ -115,6 +105,16 @@
             </property>
             <property name="text">
              <string>Manual</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="0" colspan="2">
+           <widget class="QRadioButton" name="lookupAutomatic">
+            <property name="text">
+             <string>Automatic (mDNS, local subnet)</string>
+            </property>
+            <property name="checked">
+             <bool>true</bool>
             </property>
            </widget>
           </item>
