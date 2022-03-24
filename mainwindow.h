@@ -53,10 +53,7 @@ private slots:
     void changedViewport(int index, QWidget* active, QList<QWidget*> inactive);
 
     void on_actionGenerate_App_Crash_triggered();
-
     void on_actionOpen_log_file_triggered();
-    void on_actionSettings_triggered();
-
     void settingsChanged();
 
 protected:

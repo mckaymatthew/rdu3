@@ -128,17 +128,18 @@ MainWindow::MainWindow(QWidget *parent)
         QCoreApplication::postEvent(this->ui->mainDial, e->clone());
     });
 
-    connect(this->ui->actionInhibit_Transmit, &QAction::triggered, std::bind(&RDUController::writeWord, &m_controller, CLK_GATE, 0));
+    connect(this->ui->actionSettings, &QAction::triggered, &this->m_preferences, &Preferences::show);
+
+    connect(this->ui->actionInhibit_Transmit, &QAction::triggered, std::bind(&RDUController::writeWord, &m_controller, RDUController::CLK_GATE, 0));
     connect(this->ui->actionInhibit_Transmit, &QAction::triggered, std::bind(&MainWindow::updateAction, this, "Tx Inhibit"));
 
-    connect(this->ui->actionEnable_Transmit, &QAction::triggered, std::bind(&RDUController::writeWord, &m_controller, CLK_GATE, 1));
+    connect(this->ui->actionEnable_Transmit, &QAction::triggered, std::bind(&RDUController::writeWord, &m_controller, RDUController::CLK_GATE, 1));
     connect(this->ui->actionEnable_Transmit, &QAction::triggered, std::bind(&MainWindow::updateAction, this, "Tx Enable"));
 
-    connect(this->ui->actionResetSOC, &QAction::triggered, std::bind(&RDUController::writeWord, &m_controller, CPU_RESET, 1));
+    connect(this->ui->actionResetSOC, &QAction::triggered, std::bind(&RDUController::writeWord, &m_controller, RDUController::CPU_RESET, 1));
     connect(this->ui->actionResetSOC, &QAction::triggered, std::bind(&MainWindow::updateAction, this, "Reset SoC"));
 
-     //unaligned write causes CPU to fault
-    connect(this->ui->actionHaltSOC, &QAction::triggered, std::bind(&RDUController::writeWord, &m_controller, CPU_RESET+1, 9));
+    connect(this->ui->actionHaltSOC, &QAction::triggered, std::bind(&RDUController::writeWord, &m_controller, RDUController::CPU_HALT, 9));
     connect(this->ui->actionHaltSOC, &QAction::triggered, std::bind(&MainWindow::updateAction, this, "Halt SOC"));
 
 
@@ -166,12 +167,14 @@ MainWindow::MainWindow(QWidget *parent)
     QTimer::singleShot(5,[this](){
         this->resize(this->minimumSizeHint());
     });
-}
 
+    this->m_preferences.setModal(true);
+
+}
 
 MainWindow::~MainWindow()
 {
-    m_controller.writeWord(CLK_GATE,0);
+    m_controller.writeWord(RDUController::CLK_GATE,0);
     m_workerThread->quit();
     m_workerThread->wait();
     delete ui;
@@ -204,7 +207,7 @@ void MainWindow::closeEvent(QCloseEvent *event)
 //    settings.setValue("mainWindow/stackIndex", this->ui->stackedWidget->currentIndex());
 
     //Shut off FPGA Tx
-    m_controller.writeWord(CLK_GATE,0);
+    m_controller.writeWord(RDUController::CLK_GATE,0);
     QMainWindow::closeEvent(event);
 }
 
@@ -311,11 +314,6 @@ void MainWindow::on_actionOpen_log_file_triggered()
     QDesktopServices::openUrl(logPath);
 }
 
-void MainWindow::on_actionSettings_triggered()
-{
-    this->m_preferences.setModal(true);
-    this->m_preferences.open();
-}
 void MainWindow::settingsChanged() {
     int maxVal = this->m_settings.value("maxVolume",(250/4)).toInt();
     this->ui->volume->setMaximum(maxVal);

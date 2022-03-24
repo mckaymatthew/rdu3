@@ -18,6 +18,19 @@ class RDUController : public QObject
 {
     Q_OBJECT
 public:
+
+    enum Register {
+        CPU_RESET           = 0xf0000000,
+        CPU_HALT            = 0xf0000001, //Unaligned access causes soc to halt
+        CLK_GATE            = 0xf0002800,
+        FPS_DIVISOR         = 0xf0002804,
+        MAIN_DAIL_OFFSET    = 0xf0003000,
+        MULTI_DIAL_OFFSET   = 0xf0003004,
+        BPF_IN_OFFSET       = 0xf0003008,
+        BPF_OUT_OFFSET      = 0xf000300C
+    };
+    Q_ENUM(Register);
+
     explicit RDUController(QObject *parent = nullptr);
 public slots:
     //Well understood events
@@ -32,7 +45,7 @@ public slots:
     void setFrameDivisor(uint8_t ndivisor);
 
     //Debuging interfaces
-    void writeWord(uint32_t addr, uint32_t data);
+    void writeWord(Register addr, uint32_t data);
     void writeRequest(Request r);
     void writeInject(QByteArray toInject);
     void writeInjectHex(QString toInjectHex);
@@ -105,7 +118,7 @@ private:
     state Connected();
     state Ping();
     state Error();
-    state ReadReg(uint32_t reg, uint32_t *dst, state stateNext);
+    state ReadReg(Register reg, uint32_t *dst, state stateNext);
 
     state SpecialWaitAck(state remain, state acked);
     state nextState = RDU_Idle;

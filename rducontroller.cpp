@@ -194,13 +194,11 @@ RDUController::state RDUController::SetupHostData() {
 }
 RDUController::state RDUController::SetFrameRate() {
     emit notifyUserOfState(QString("Set FPGA FPS"));
-    qInfo() << (QString("Set FPS Divisor %1.").arg(divisor));
     writeWord(FPS_DIVISOR,divisor);
     return RDUController::state::RDU_SetFrameRate_Wait;
 }
 RDUController::state RDUController::EnableClock() {
     emit notifyUserOfState(QString("Activate FPGA Transmit"));
-    qInfo() << ("LCD Clock Enable.");
     writeWord(CLK_GATE,1);
     return RDUController::state::RDU_EnableClock_Wait;
 }
@@ -261,12 +259,14 @@ RDUController::state RDUController::SpecialWaitAck(state waiting, state success)
     }
 }
 
-RDUController::state RDUController::ReadReg(uint32_t addr, uint32_t *dst, RDUController::state stateNext) {
+RDUController::state RDUController::ReadReg(Register addr, uint32_t *dst, RDUController::state stateNext) {
     Request r = Request_init_default;
     r.which_payload = Request_readWord_tag;
     r.payload.readWord.address = addr;
     regReadDestination = dst;
-    emit notifyUserOfState(QString("Read register %1").arg(addr,8,16,QChar('0')));
+
+    auto regName = QVariant::fromValue(addr).toString();
+    emit notifyUserOfState(QString("Read register %1").arg(regName));
     writeRequest(r);
     return stateNext;
 }
@@ -304,6 +304,7 @@ void RDUController::readyRead() {
                     if(msg_resp.which_payload == Response_readWord_tag) {
                         if(regReadDestination != nullptr) {
                             if(msg_resp.payload.readWord.has_data) {
+                                qInfo() << (QString("Read Reponse: %1.").arg(msg_resp.payload.readWord.data,8,16,QChar('0')));
                                 *regReadDestination = msg_resp.payload.readWord.data;
                                 haveAck = true;
                             } else {
@@ -356,14 +357,15 @@ void RDUController::writeRequest(Request r) {
     }
 
 }
-void RDUController::writeWord(uint32_t addr, uint32_t data) {
+void RDUController::writeWord(Register addr, uint32_t data) {
     Request r = Request_init_default;
     r.which_payload = Request_writeWord_tag;
     r.payload.writeWord.address = addr;
     r.payload.writeWord.has_data = true;
     r.payload.writeWord.data = data;
 
-    qDebug() << (QString("Write 0x%1 to 0x%2.").arg(data,8,16,QChar('0')).arg(addr,8,16,QChar('0')));
+    auto regName = QVariant::fromValue(addr).toString();
+    qInfo() << QString("Write 0x%1 to %2.").arg(data,8,16,QChar('0')).arg(regName);
     writeRequest(r);
 }
 

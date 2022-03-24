@@ -186,7 +186,7 @@ QLabel {
                  <item row="1" column="0">
                   <widget class="QLabel" name="label">
                    <property name="text">
-                    <string>PBT IN</string>
+                    <string>PBT 1</string>
                    </property>
                    <property name="alignment">
                     <set>Qt::AlignCenter</set>
@@ -212,7 +212,7 @@ QLabel {
                  <item row="1" column="2">
                   <widget class="QLabel" name="label_2">
                    <property name="text">
-                    <string>PBT OUT</string>
+                    <string>PBT 2</string>
                    </property>
                    <property name="alignment">
                     <set>Qt::AlignCenter</set>
