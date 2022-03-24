@@ -3,6 +3,7 @@
 #include "pb_decode.h"
 #include "RDUConstants.h"
 #include <QtEndian>
+#include <QSslConfiguration>
 
 RDUController::RDUController(QObject *parent)
     : QObject(parent)
@@ -14,6 +15,14 @@ RDUController::RDUController(QObject *parent)
 
 {
     connect(&socket, &QTcpSocket::readyRead,this, &RDUController::readyRead);
+    connect(&socket, &QSslSocket::sslErrors, this, &RDUController::sslErrors);
+
+    socket.setPeerVerifyName("localhost");
+    auto sslConfiguration = socket.sslConfiguration();
+    auto add = sslConfiguration.addCaCertificates("/Users/mckaym/Dropbox/IC7300/RDU3/ca.der",QSsl::Der);
+    sslConfiguration.setPeerVerifyMode(QSslSocket::VerifyNone);
+    qInfo() << "Add root ca " << (add ? "succesful" : "failed");
+    socket.setSslConfiguration(sslConfiguration);
     startTimer(100);
 }
 void RDUController::timerEvent(QTimerEvent* ) {
@@ -160,12 +169,15 @@ RDUController::state RDUController::Query_mDNS_Wait() {
 RDUController::state RDUController::ConnectRemote() {
     emit notifyUserOfState(QString("Connecting to %1").arg(m_addrAlt.toString()));
     qInfo() << (QString("Found RDU at %1, connecting...").arg(m_addrAlt.toString()));
-    socket.connectToHost(m_addrAlt, 4242);
+//    socket.connectToHost(m_addrAlt, 4242);
+    socket.connectToHostEncrypted(m_addrAlt.toString(), 4242);
     return RDUController::state::RDU_ConnectRemote_Wait;
 }
 RDUController::state RDUController::ConnectRemote_Wait() {
-    const bool connected = socket.state() == QAbstractSocket::ConnectedState;
-    const bool timeout = timeInState.elapsed() > 5000;
+//    const bool connected = socket.state() == QAbstractSocket::ConnectedState;
+    const bool connected = socket.isEncrypted();
+//    const bool timeout = timeInState.elapsed() > 5000;
+    const bool timeout = false;
     if(connected) {
         return RDUController::state::RDU_DisableClock;
     } else if(timeout) {
@@ -440,4 +452,12 @@ void RDUController::injectTouchRelease() {
     QByteArray injectParameter = QByteArray::fromHex("fe1300270f270ffd");
     qInfo() << (QString("Touch Release: %1.").arg(QString(injectParameter.toHex())));
     writeInject(injectParameter);
+}
+
+void RDUController::sslErrors(const QList<QSslError> &errors) {
+
+    for(const QSslError& e : errors) {
+        qWarning() << e.errorString();
+
+    }
 }

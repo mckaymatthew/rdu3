@@ -6,6 +6,7 @@
 #include <QHostInfo>
 #include <QByteArray>
 #include <QTcpSocket>
+#include <QSslSocket>
 #include "simple.pb.h"
 #include <qmdnsengine/server.h>
 #include <qmdnsengine/resolver.h>
@@ -60,9 +61,10 @@ protected:
     void timerEvent(QTimerEvent *event) override;
 private slots:
     void readyRead();
+    void sslErrors(const QList<QSslError> &errors);
 private:
     void stepState();
-    QTcpSocket socket;
+    QSslSocket socket;
     QByteArray msg_resp_buffer;
     int msg_resp_buffer_write = -1;
     int msg_resp_buffer_idx = 0;
