@@ -48,7 +48,6 @@ public slots:
     void writeWord(Register addr, uint32_t data);
     void writeRequest(Request r);
     void writeInject(QByteArray toInject);
-    void writeInjectHex(QString toInjectHex);
 
 
 signals:

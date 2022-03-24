@@ -328,9 +328,6 @@ void RDUController::readyRead() {
         }
     }
 }
-void RDUController::writeInjectHex(QString toInjectHex) {
-    writeInject(QByteArray::fromHex(toInjectHex.toLatin1()));
-}
 void RDUController::writeInject(QByteArray toInject) {
     Request r = Request_init_default;
     qsizetype maxInject = sizeof(r.payload.inject.data.bytes);
@@ -345,17 +342,17 @@ void RDUController::writeInject(QByteArray toInject) {
     }
     writeRequest(r);
 }
+
 void RDUController::writeRequest(Request r) {
     if(socket.isValid()) {
-        uint8_t buffer[Request_size];
-        pb_ostream_t stream = pb_ostream_from_buffer(buffer, sizeof(buffer));
+        QByteArray outBuff((qsizetype)(Request_size+1), '\0');
+        pb_ostream_t stream = pb_ostream_from_buffer((pb_byte_t *)(outBuff.data() + 1), outBuff.size() - 1);
         pb_encode(&stream, Request_fields, &r);
-        uint8_t message_length = stream.bytes_written;
-        socket.write((const char *)&message_length,1);
-        socket.write((const char *)buffer,message_length);
+        outBuff[0] = stream.bytes_written;
+        outBuff.truncate(stream.bytes_written+1);
+        socket.write(outBuff);
         socket.flush();
     }
-
 }
 void RDUController::writeWord(Register addr, uint32_t data) {
     Request r = Request_init_default;
