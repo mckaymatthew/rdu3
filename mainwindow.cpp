@@ -129,17 +129,22 @@ MainWindow::MainWindow(QWidget *parent)
     });
 
     connect(this->ui->actionSettings, &QAction::triggered, &this->m_preferences, &Preferences::show);
+    connect(this->ui->actionPeek_Poke, &QAction::triggered, &this->m_poker, &PeekPoke::show);
+    connect(&this->m_poker, &PeekPoke::peek, &this->m_controller, &RDUController::readWord);
+    connect(&this->m_poker, &PeekPoke::poke, &this->m_controller, &RDUController::writeWord);
+    connect(&this->m_controller, &RDUController::readWordDone, &this->m_poker, &PeekPoke::newData);
 
-    connect(this->ui->actionInhibit_Transmit, &QAction::triggered, std::bind(&RDUController::writeWord, &m_controller, RDUController::CLK_GATE, 0));
+
+    connect(this->ui->actionInhibit_Transmit, &QAction::triggered, std::bind(&RDUController::writeWord, &m_controller, RDUController::rgb_control_csr, 0));
     connect(this->ui->actionInhibit_Transmit, &QAction::triggered, std::bind(&MainWindow::updateAction, this, "Tx Inhibit"));
 
-    connect(this->ui->actionEnable_Transmit, &QAction::triggered, std::bind(&RDUController::writeWord, &m_controller, RDUController::CLK_GATE, 1));
+    connect(this->ui->actionEnable_Transmit, &QAction::triggered, std::bind(&RDUController::writeWord, &m_controller, RDUController::rgb_control_csr, 1));
     connect(this->ui->actionEnable_Transmit, &QAction::triggered, std::bind(&MainWindow::updateAction, this, "Tx Enable"));
 
-    connect(this->ui->actionResetSOC, &QAction::triggered, std::bind(&RDUController::writeWord, &m_controller, RDUController::CPU_RESET, 1));
+    connect(this->ui->actionResetSOC, &QAction::triggered, std::bind(&RDUController::writeWord, &m_controller, RDUController::ctrl_reset, 1));
     connect(this->ui->actionResetSOC, &QAction::triggered, std::bind(&MainWindow::updateAction, this, "Reset SoC"));
 
-    connect(this->ui->actionHaltSOC, &QAction::triggered, std::bind(&RDUController::writeWord, &m_controller, RDUController::CPU_HALT, 9));
+    connect(this->ui->actionHaltSOC, &QAction::triggered, std::bind(&RDUController::writeWord, &m_controller, RDUController::ctrl_halt, 9));
     connect(this->ui->actionHaltSOC, &QAction::triggered, std::bind(&MainWindow::updateAction, this, "Halt SOC"));
 
 
@@ -174,7 +179,7 @@ MainWindow::MainWindow(QWidget *parent)
 
 MainWindow::~MainWindow()
 {
-    m_controller.writeWord(RDUController::CLK_GATE,0);
+    m_controller.writeWord(RDUController::rgb_control_csr,0);
     m_workerThread->quit();
     m_workerThread->wait();
     delete ui;
@@ -207,7 +212,7 @@ void MainWindow::closeEvent(QCloseEvent *event)
 //    settings.setValue("mainWindow/stackIndex", this->ui->stackedWidget->currentIndex());
 
     //Shut off FPGA Tx
-    m_controller.writeWord(RDUController::CLK_GATE,0);
+    m_controller.writeWord(RDUController::rgb_control_csr,0);
     QMainWindow::closeEvent(event);
 }
 
@@ -318,4 +323,5 @@ void MainWindow::settingsChanged() {
     int maxVal = this->m_settings.value("maxVolume",(250/4)).toInt();
     this->ui->volume->setMaximum(maxVal);
 }
+
 
