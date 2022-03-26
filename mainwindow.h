@@ -24,6 +24,7 @@
 #include <QList>
 #include "rotaryaccumulator.h"
 #include "preferences.h"
+#include "peekpoke.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -64,6 +65,7 @@ private:
     Ui::MainWindow *ui;
     QSettings m_settings;
     Preferences m_preferences;
+    PeekPoke m_poker;
     QThread* m_workerThread;
     RDUWorker* m_worker;
     RDUController m_controller;

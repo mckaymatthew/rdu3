@@ -6,6 +6,7 @@
 #include <QHostInfo>
 #include <QByteArray>
 #include <QTcpSocket>
+#include <QSslSocket>
 #include "simple.pb.h"
 #include <qmdnsengine/server.h>
 #include <qmdnsengine/resolver.h>
@@ -20,14 +21,27 @@ class RDUController : public QObject
 public:
 
     enum Register {
-        CPU_RESET           = 0xf0000000,
-        CPU_HALT            = 0xf0000001, //Unaligned access causes soc to halt
-        CLK_GATE            = 0xf0002800,
-        FPS_DIVISOR         = 0xf0002804,
-        MAIN_DAIL_OFFSET    = 0xf0003000,
-        MULTI_DIAL_OFFSET   = 0xf0003004,
-        BPF_IN_OFFSET       = 0xf0003008,
-        BPF_OUT_OFFSET      = 0xf000300C
+        ctrl_reset = 0xf0000000,
+        ctrl_halt = 0xf0000001, //Unaligned access causes soc to halt
+        ctrl_scratch = 0xf0000004,
+        ctrl_bus_errors = 0xf0000008,
+        rgb_control_csr = 0xf0002800,
+        rgb_frame_divisor_csr = 0xf0002804,
+        rotary_main_dial_encoderOffset = 0xf0003000,
+        rotary_multi_dial_encoderOffset = 0xf0003004,
+        rotary_bpf_in_encoderOffset = 0xf0003008,
+        rotary_bpf_out_encoderOffset = 0xf000300c,
+        timer0_load = 0xf0005000,
+        timer0_reload = 0xf0005004,
+        timer0_en = 0xf0005008,
+        timer0_update_value = 0xf000500c,
+        timer0_value = 0xf0005010,
+        timer0_ev_status = 0xf0005014,
+        timer0_ev_pending = 0xf0005018,
+        timer0_ev_enable = 0xf000501c,
+        timer0_uptime_latch = 0xf0005020,
+        timer0_uptime_cycles_msp = 0xf0005024,
+        timer0_uptime_cycles_lsp = 0xf0005028, //Reg is 64 bits.
     };
     Q_ENUM(Register);
 
@@ -48,6 +62,7 @@ public slots:
     void writeWord(Register addr, uint32_t data);
     void writeRequest(Request r);
     void writeInject(QByteArray toInject);
+    void readWord(Register addr);
 
 
 signals:
@@ -56,6 +71,7 @@ signals:
     void notifyUserOfAction(QString);
     void newLrxdBytes(QByteArray);
     void newLtxdBytes(QByteArray);
+    void readWordDone(Register addr, uint32_t data);
 protected:
     void timerEvent(QTimerEvent *event) override;
 private slots:

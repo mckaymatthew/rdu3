@@ -1080,6 +1080,7 @@ R</string>
     <addaction name="actionLog_Network_Metadata"/>
     <addaction name="actionGenerate_App_Crash"/>
     <addaction name="actionStats_for_Nerds"/>
+    <addaction name="actionPeek_Poke"/>
    </widget>
    <widget class="QMenu" name="menuView">
     <property name="title">
@@ -1273,6 +1274,11 @@ R</string>
   <action name="actionSettings">
    <property name="text">
     <string>Settings</string>
+   </property>
+  </action>
+  <action name="actionPeek_Poke">
+   <property name="text">
+    <string>Peek/Poke</string>
    </property>
   </action>
  </widget>

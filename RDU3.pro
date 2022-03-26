@@ -10,6 +10,7 @@ CONFIG += c++11
 SOURCES += \
     lrxddecoder.cpp \
     paths.cpp \
+    peekpoke.cpp \
     preferences.cpp \
     renderlabel.cpp \
     rotaryaccumulator.cpp \
@@ -45,6 +46,7 @@ SOURCES += \
 HEADERS += \
     lrxddecoder.h \
     paths.h \
+    peekpoke.h \
     preferences.h \
     renderlabel.h \
     rotaryaccumulator.h \
@@ -93,6 +95,7 @@ HEADERS += \
 
 FORMS += \
     mainwindow.ui \
+    peekpoke.ui \
     preferences.ui
 
 INCLUDEPATH += $$PWD/qMDNS/src/

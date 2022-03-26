@@ -63,25 +63,25 @@ void RDUController::stepState() {
         nextState = SpecialWaitAck(currentState, RDU_Read_MainDial);
         break;
     case RDU_Read_MainDial:
-        nextState = ReadReg(MAIN_DAIL_OFFSET, (uint32_t*)&m_main_dial_offset, RDU_Read_MainDial_Wait);
+        nextState = ReadReg(rotary_main_dial_encoderOffset, (uint32_t*)&m_main_dial_offset, RDU_Read_MainDial_Wait);
         break;
     case RDU_Read_MainDial_Wait:
         nextState = SpecialWaitAck(currentState, RDU_Read_MultiDial);
         break;
     case RDU_Read_MultiDial:
-        nextState = ReadReg(MULTI_DIAL_OFFSET, (uint32_t*)&m_multi_dial_offset, RDU_Read_MultiDial_Wait);
+        nextState = ReadReg(rotary_multi_dial_encoderOffset, (uint32_t*)&m_multi_dial_offset, RDU_Read_MultiDial_Wait);
         break;
     case RDU_Read_MultiDial_Wait:
         nextState = SpecialWaitAck(currentState, RDU_Read_BPFIn);
         break;
     case RDU_Read_BPFIn:
-        nextState = ReadReg(BPF_IN_OFFSET, (uint32_t*)&m_bpf_in_dial_offset, RDU_Read_BPFIn_Wait);
+        nextState = ReadReg(rotary_bpf_in_encoderOffset, (uint32_t*)&m_bpf_in_dial_offset, RDU_Read_BPFIn_Wait);
         break;
     case RDU_Read_BPFIn_Wait:
         nextState = SpecialWaitAck(currentState, RDU_Read_BPFOut);
         break;
     case RDU_Read_BPFOut:
-        nextState = ReadReg(BPF_OUT_OFFSET, (uint32_t*)&m_bpf_out_dial_offset, RDU_Read_BPFOut_Wait);
+        nextState = ReadReg(rotary_bpf_out_encoderOffset, (uint32_t*)&m_bpf_out_dial_offset, RDU_Read_BPFOut_Wait);
         break;
     case RDU_Read_BPFOut_Wait:
         nextState = SpecialWaitAck(currentState, RDU_EnableClock);
@@ -159,7 +159,7 @@ RDUController::state RDUController::Query_mDNS_Wait() {
 
 RDUController::state RDUController::ConnectRemote() {
     emit notifyUserOfState(QString("Connecting to %1").arg(m_addrAlt.toString()));
-    qInfo() << (QString("Found RDU at %1, connecting...").arg(m_addrAlt.toString()));
+    qInfo() << (QString("RDU is at %1, connecting...").arg(m_addrAlt.toString()));
     socket.connectToHost(m_addrAlt, 4242);
     return RDUController::state::RDU_ConnectRemote_Wait;
 }
@@ -181,7 +181,7 @@ RDUController::state RDUController::ConnectRemote_Wait() {
 RDUController::state RDUController::DisableClock() {
     emit notifyUserOfState(QString("Stop FPGA"));
     qInfo() << ("LCD Clock Inhibit.");
-    writeWord(CLK_GATE,0);
+    writeWord(rgb_control_csr,0);
     return RDUController::state::RDU_DisableClock_Wait;
 }
 RDUController::state RDUController::SetupHostData() {
@@ -194,12 +194,12 @@ RDUController::state RDUController::SetupHostData() {
 }
 RDUController::state RDUController::SetFrameRate() {
     emit notifyUserOfState(QString("Set FPGA FPS"));
-    writeWord(FPS_DIVISOR,divisor);
+    writeWord(rgb_frame_divisor_csr,divisor);
     return RDUController::state::RDU_SetFrameRate_Wait;
 }
 RDUController::state RDUController::EnableClock() {
     emit notifyUserOfState(QString("Activate FPGA Transmit"));
-    writeWord(CLK_GATE,1);
+    writeWord(rgb_control_csr,1);
     return RDUController::state::RDU_EnableClock_Wait;
 }
 RDUController::state RDUController::Connected() {
@@ -271,6 +271,17 @@ RDUController::state RDUController::ReadReg(Register addr, uint32_t *dst, RDUCon
     return stateNext;
 }
 
+void RDUController::readWord(Register addr) {
+    Request r = Request_init_default;
+    r.which_payload = Request_readWord_tag;
+    r.payload.readWord.address = addr;
+    regReadDestination = nullptr;
+
+    auto regName = QVariant::fromValue(addr).toString();
+    emit notifyUserOfState(QString("Read register %1").arg(regName));
+    writeRequest(r);
+}
+
 void RDUController::readyRead() {
     auto data = socket.readAll();
     for(int i = 0; i < data.size(); i++) {
@@ -302,16 +313,17 @@ void RDUController::readyRead() {
                         haveAck = true;
                     }
                     if(msg_resp.which_payload == Response_readWord_tag) {
-                        if(regReadDestination != nullptr) {
-                            if(msg_resp.payload.readWord.has_data) {
-                                qInfo() << (QString("Read Reponse: %1.").arg(msg_resp.payload.readWord.data,8,16,QChar('0')));
+                        if(msg_resp.payload.readWord.has_data) {
+                            qInfo() << (QString("Read Reponse: %1.").arg(msg_resp.payload.readWord.data,8,16,QChar('0')));
+
+                            if(regReadDestination != nullptr) {
                                 *regReadDestination = msg_resp.payload.readWord.data;
-                                haveAck = true;
                             } else {
-                                qWarning() << QString("Got unexpected empty read word response for %1").arg(msg_resp.payload.readWord.address,8,16,QChar('0'));
+                                emit readWordDone((RDUController::Register)msg_resp.payload.readWord.address, msg_resp.payload.readWord.data);
                             }
+                            haveAck = true;
                         } else {
-                            qWarning() << QString("Got unexpected read word response for %1").arg(msg_resp.payload.readWord.address,8,16,QChar('0'));
+                            qWarning() << QString("Got unexpected empty read word response for %1").arg(msg_resp.payload.readWord.address,8,16,QChar('0'));
                         }
                     }
                     if(msg_resp.which_payload == Response_lrxd_tag) {
@@ -368,14 +380,14 @@ void RDUController::writeWord(Register addr, uint32_t data) {
 
 void RDUController::setFrameDivisor(uint8_t ndivisior) {
     this->divisor = ndivisior;
-    writeWord(FPS_DIVISOR,ndivisior);
+    writeWord(rgb_frame_divisor_csr,ndivisior);
 }
 
 void RDUController::spinMultiDial(int ticks) {
     m_multi_dial_offset = m_multi_dial_offset + ticks;
     emit notifyUserOfAction(QString("Multi Dial %1 (abs: %2)").arg(ticks).arg(m_multi_dial_offset));
     if(socket.isValid()) {
-        writeWord(MULTI_DIAL_OFFSET,m_multi_dial_offset);
+        writeWord(rotary_multi_dial_encoderOffset,m_multi_dial_offset);
     }
 
 }
@@ -383,21 +395,21 @@ void RDUController::spinMainDial(int ticks) {
     m_main_dial_offset = m_main_dial_offset + ticks;
     emit notifyUserOfAction(QString("Main Dial %1 (abs: %2)").arg(ticks).arg(m_main_dial_offset));
     if(socket.isValid()) {
-        writeWord(MAIN_DAIL_OFFSET,m_main_dial_offset);
+        writeWord(rotary_main_dial_encoderOffset,m_main_dial_offset);
     }
 }
 void RDUController::spinBPFInDial(int ticks) {
     m_bpf_in_dial_offset = m_bpf_in_dial_offset + ticks;
     emit notifyUserOfAction(QString("BPF Inner Dial %1 (abs: %2)").arg(ticks).arg(m_bpf_in_dial_offset));
     if(socket.isValid()) {
-        writeWord(BPF_IN_OFFSET,m_bpf_in_dial_offset);
+        writeWord(rotary_bpf_in_encoderOffset,m_bpf_in_dial_offset);
     }
 }
 void RDUController::spinBPFOutDial(int ticks) {
     m_bpf_out_dial_offset = m_bpf_out_dial_offset + ticks;
     emit notifyUserOfAction(QString("BPF Outer Dial %1 (abs: %2)").arg(ticks).arg(m_bpf_out_dial_offset));
     if(socket.isValid()) {
-        writeWord(BPF_OUT_OFFSET,m_bpf_out_dial_offset);
+        writeWord(rotary_bpf_out_encoderOffset,m_bpf_out_dial_offset);
     }
 }
 
