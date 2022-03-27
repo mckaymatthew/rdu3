@@ -14,6 +14,7 @@
 #include <QtEndian>
 #include <QDesktopServices>
 #include <QDir>
+#include <QStandardPaths>
 
 using namespace Qt;
 using namespace std;
@@ -39,7 +40,12 @@ MainWindow::MainWindow(QWidget *parent)
     connect(&m_controller, &RDUController::newLtxdBytes, &this->m_ltxd_decoder, &LtxdDecoder::newData);
     connect(&m_controller, &RDUController::newLrxdBytes, &this->m_lrxd_decoder, &LrxdDecoder::newData);
     connect(m_worker, &RDUWorker::newFrame, this, &MainWindow::workerFramePassthrough);
-    connect(this, &MainWindow::buffDispose, m_worker, &RDUWorker::buffDispose);
+//    connect(this, &MainWindow::buffDispose, m_worker, &RDUWorker::buffDispose);
+    connect(this, &MainWindow::buffDispose, &m_interp, &Interperter::newBuff);
+    connect(&m_interp, &Interperter::buffDispose, m_worker, &RDUWorker::buffDispose);
+
+
+
     m_workerThread->start();
     QMetaObject::invokeMethod(m_worker,&RDUWorker::startWorker);
 
@@ -174,6 +180,7 @@ MainWindow::MainWindow(QWidget *parent)
     });
 
     this->m_preferences.setModal(true);
+    this->m_interp.show();
 
 }
 
@@ -251,7 +258,9 @@ void MainWindow::on_actionSave_PNG_triggered()
 {
     auto p = whichLabel()->toRender;
     QDateTime time = QDateTime::currentDateTime();
-    QString filename = QString("%1.png").arg(time.toString("dd.MM.yyyy.hh.mm.ss.z"));
+    QString picData = QStandardPaths::locate(QStandardPaths::PicturesLocation,"",QStandardPaths::LocateDirectory);
+
+    QString filename = QString("%2%1.png").arg(time.toString("yyyy.MM.dd.hh.mm.ss.z")).arg(picData);
     this->ui->lastActionLabel->setText(QString("Save PNG %1").arg(filename));
     QFile file(filename);
     file.open(QIODevice::WriteOnly);

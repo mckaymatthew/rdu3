@@ -8,6 +8,7 @@ CONFIG += c++11
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
+    interperter.cpp \
     lrxddecoder.cpp \
     paths.cpp \
     peekpoke.cpp \
@@ -44,6 +45,7 @@ SOURCES += \
     rduworker.cpp
 
 HEADERS += \
+    interperter.h \
     lrxddecoder.h \
     paths.h \
     peekpoke.h \
@@ -94,6 +96,7 @@ HEADERS += \
     rduworker.h
 
 FORMS += \
+    interperter.ui \
     mainwindow.ui \
     peekpoke.ui \
     preferences.ui
