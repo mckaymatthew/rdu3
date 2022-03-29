@@ -69,11 +69,29 @@ RadioState::RadioState(QObject *parent) : QObject(parent)
 }
 
 
-void RadioState::onScreen(QString screen, QJSValue jsCallback) {
-    m_callbacks.append({screen, false, "", jsCallback});
+void RadioState::onScreen(QString screen, QJSValue jsCallback, int timeout, QJSValue onTimeout) {
+    if(!jsCallback.isCallable() || (timeout != 0 && !onTimeout.isCallable())) {
+        qWarning() << "Provided callback is not callable, not proceeding";
+        return;
+    }
+    QTimer* timeoutTimer = nullptr;
+    if(timeout != 0) {
+        timeoutTimer = new QTimer(this); //TODO is this leaking timers?
+        timeoutTimer->setSingleShot(true);
+        connect(timeoutTimer, &QTimer::timeout, [onTimeout](){
+            qInfo() << "Callback in timeout";
+            onTimeout.call();
+        });
+        timeoutTimer->start(timeout);
+    }
+    m_callbacks.append({screen, false, "", jsCallback, timeoutTimer});
 }
 void RadioState::onScreen(QString screen, QString secondScreen, QJSValue jsCallback) {
-    m_callbacks.append({screen, true, secondScreen, jsCallback});
+    if(!jsCallback.isCallable()) {
+        qWarning() << "Provided callback is not callable, not proceeding";
+        return;
+    }
+    m_callbacks.append({screen, true, secondScreen, jsCallback, nullptr});
 }
 void RadioState::newBuff(QByteArray* f) {
     QString newScreen = "Unknown";
@@ -113,9 +131,25 @@ void RadioState::newBuff(QByteArray* f) {
     QMutableListIterator<callback_t> i(copyList);
     while (i.hasNext()) {
         auto cb = i.next();
-        if(cb.screenName == newScreen && (!cb.secondScreen || cb.secondScreenName == newSecondScreen)) {
-            qInfo() << "JS Callback activated " << cb.jsCallback.toString();
+        bool remove = false;
+        if(cb.timeout != nullptr) {
+            bool timedOut = !cb.timeout->isActive();
+            if(timedOut) {
+                remove = true;
+            }
+        }
+        if(!remove &&
+                (cb.screenName == newScreen
+                 && (!cb.secondScreen
+                     || cb.secondScreenName == newSecondScreen))) {
+            qInfo() << "Success: Callback for for  " << newScreen << " " << newSecondScreen << " activated.";
             cb.jsCallback.call();
+            remove = true;
+        }
+        if(remove) {
+            if(cb.timeout != nullptr) {
+                cb.timeout->stop();
+            }
             i.remove();
         }
     }
@@ -132,5 +166,12 @@ void RadioState::press(FrontPanelButton button) {
 
     QTimer::singleShot(100, [disableStr, this](){
         emit injectData(QByteArray::fromHex(disableStr.toLatin1()));
+    });
+}
+
+void RadioState::touch(int x, int y) {
+    emit injectTouch({x,y});
+    QTimer::singleShot(100, [this](){
+        emit this->injectTouchRelease();
     });
 }

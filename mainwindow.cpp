@@ -49,6 +49,8 @@ MainWindow::MainWindow(QWidget *parent)
     connect(this, &MainWindow::buffDispose, &this->m_radioState, &RadioState::newBuff);
     connect(&this->m_radioState, &RadioState::buffDispose, m_worker, &RDUWorker::buffDispose);
     connect(&this->m_radioState, &RadioState::injectData, &m_controller, &RDUController::writeInject);
+    connect(&this->m_radioState, &RadioState::injectTouch, &m_controller, &RDUController::injectTouch);
+    connect(&this->m_radioState, &RadioState::injectTouchRelease, &m_controller, &RDUController::injectTouchRelease);
 
 
 

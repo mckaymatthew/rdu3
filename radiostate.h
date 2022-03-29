@@ -7,6 +7,8 @@
 #include <QColor>
 #include <QPoint>
 #include <QJSValue>
+#include <QTimer>
+#include <QSharedPointer>
 
 class RadioState : public QObject
 {
@@ -21,15 +23,18 @@ public:
     };
     Q_ENUM(FrontPanelButton);
     explicit RadioState(QObject *parent = nullptr);
-    Q_INVOKABLE void onScreen(QString screen, QJSValue jsCallback);
+    Q_INVOKABLE void onScreen(QString screen, QJSValue jsCallback, int timeout = 0, QJSValue onTimeout = QJSValue());
     Q_INVOKABLE void onScreen(QString screen, QString secondScreen, QJSValue jsCallback);
     Q_INVOKABLE void press(FrontPanelButton button);
+    Q_INVOKABLE void touch(int x, int y);
 
 signals:
     void screenChanged(const QString & screen);
     void secondScreenChanged(const QString & screen);
     void buffDispose(QByteArray* d);
     void injectData(QByteArray b);
+    void injectTouch(QPoint p);
+    void injectTouchRelease();
 public slots:
     void newBuff(QByteArray* f);
 private:
@@ -49,6 +54,8 @@ private:
         bool secondScreen;
         QString secondScreenName;
         QJSValue jsCallback;
+
+        QTimer* timeout;
     } typedef callback_t;
     QList<screenMatch_t> m_screenMappings;
     QList<callback_t> m_callbacks;
