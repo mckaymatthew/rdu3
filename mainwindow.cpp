@@ -15,6 +15,9 @@
 #include <QDesktopServices>
 #include <QDir>
 #include <QStandardPaths>
+#include <QQmlEngine>
+#include <QQmlComponent>
+#include <QQuickView>
 
 using namespace Qt;
 using namespace std;
@@ -41,8 +44,11 @@ MainWindow::MainWindow(QWidget *parent)
     connect(&m_controller, &RDUController::newLrxdBytes, &this->m_lrxd_decoder, &LrxdDecoder::newData);
     connect(m_worker, &RDUWorker::newFrame, this, &MainWindow::workerFramePassthrough);
 //    connect(this, &MainWindow::buffDispose, m_worker, &RDUWorker::buffDispose);
-    connect(this, &MainWindow::buffDispose, &m_interp, &Interperter::newBuff);
-    connect(&m_interp, &Interperter::buffDispose, m_worker, &RDUWorker::buffDispose);
+//    connect(this, &MainWindow::buffDispose, &m_interp, &Interperter::newBuff);
+//    connect(&m_interp, &Interperter::buffDispose, m_worker, &RDUWorker::buffDispose);
+    connect(this, &MainWindow::buffDispose, &this->m_radioState, &RadioState::newBuff);
+    connect(&this->m_radioState, &RadioState::buffDispose, m_worker, &RDUWorker::buffDispose);
+    connect(&this->m_radioState, &RadioState::injectData, &m_controller, &RDUController::writeInject);
 
 
 
@@ -180,7 +186,22 @@ MainWindow::MainWindow(QWidget *parent)
     });
 
     this->m_preferences.setModal(true);
-    this->m_interp.show();
+//    this->m_interp.show();
+
+//    QQmlEngine engine;
+//    QQmlComponent component(&engine,
+//            QUrl::fromLocalFile("Shortcuts.qml"));
+//    QObject *object = component.create();
+    QQuickView* view = new QQuickView();
+    qmlRegisterSingletonInstance("Qt.example.qobjectSingleton", 1, 0, "MyApi", &this->m_radioState);
+    qmlRegisterSingletonInstance("Qt.example.qobjectSingleton", 1, 0, "RDUController", &this->m_controller);
+    view->engine()->addImportPath("qrc:///");
+    view->setSource(QUrl("qrc:/Shortcuts.qml"));
+    if (view->status() == QQuickView::Error) {
+       qWarning() << "View status is error?";
+    }
+    view->setResizeMode(QQuickView::SizeRootObjectToView);
+    view->show();
 
 }
 

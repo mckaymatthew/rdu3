@@ -26,6 +26,7 @@
 #include "preferences.h"
 #include "peekpoke.h"
 #include "interperter.h"
+#include "radiostate.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -67,6 +68,7 @@ private:
     QSettings m_settings;
     Preferences m_preferences;
     Interperter m_interp;
+    RadioState m_radioState;
     PeekPoke m_poker;
     QThread* m_workerThread;
     RDUWorker* m_worker;

@@ -340,6 +340,10 @@ void RDUController::readyRead() {
         }
     }
 }
+
+void RDUController::writeInjectStr(QString toInject) {
+    writeInject(QByteArray::fromHex(toInject.toUtf8()));
+}
 void RDUController::writeInject(QByteArray toInject) {
     Request r = Request_init_default;
     qsizetype maxInject = sizeof(r.payload.inject.data.bytes);

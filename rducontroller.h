@@ -61,6 +61,7 @@ public slots:
     //Debuging interfaces
     void writeWord(Register addr, uint32_t data);
     void writeRequest(Request r);
+    void writeInjectStr(QString toInject);
     void writeInject(QByteArray toInject);
     void readWord(Register addr);
 
