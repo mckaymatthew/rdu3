@@ -39,19 +39,19 @@ Rectangle {
                 anchors.fill: parent
                 Button {
                     text: "WCCO/News"
-                    onClicked: tuneTo("83000")
+                    onClicked: directDial("83000")
                 }
                 Button {
                     text: "KUOM/University"
-                    onClicked: tuneTo("77000")
+                    onClicked: directDial("77000")
                 }
                 Button {
                     text: "KTNF/Lefty"
-                    onClicked: tuneTo("95000")
+                    onClicked: directDial("95000")
                 }
                 Button {
                     text: "WCCO Badly"
-                    onClicked: tuneTo("83001")
+                    onClicked: directDial("83001")
                 }
             }
         }
@@ -72,77 +72,61 @@ Rectangle {
                 //RDUController.spinMultiDial(ticks);
                 //Observation: If you spin the multi-dial "too soon" after the menu appears, it does not register the click
                 //100ms seems sufficent
-                MyApi.openLoopDelay(100, function() { RDUController.spinMultiDial(ticks); })
+                MyApi.openLoopDelay(5, function() { RDUController.spinMultiDial(ticks); })
             } else {
                 console.log("Failed to OCR RF Power setting.");
             }
             //With exit as well, if you do this too quickly after spinning the dial the radio does not recognize.
-            MyApi.openLoopDelay(300, function() { MyApi.press(FrontPanelButton.Exit); })
+            MyApi.openLoopDelay(15, function() { MyApi.press(FrontPanelButton.Exit); })
         })})})
     }
-    function tuneTo(newSetting) {
+    function directDial(newSetting) {
         exitToHome(function(){
-            var LsbIndicatorNoWaterfall = Qt.point(247,37)
-            var LsbIndicatorWaterfall = Qt.point(260,37)
-            var LsbSetterWaterfall = Qt.point(252,56)
-            var LsbSetterNoWaterfall = LsbSetterWaterfall //Same point works
-            var acceptableRegex = '[0-9]{1,2}\.[0-9]{3}\.[0-9]{2}'
+            var SmallVFOPt1 = Qt.point(200,67)
+            var SmallVFOPt2 = Qt.point(273,67)
+            var SmallVFOClick = Qt.point(185,56)
+            var BigVFOClick = Qt.point(110,70)
+            var FINPClick = Qt.point(377,94)
 
-            var currentSetting = MyApi.readText(162,37,173,35,true,true).replace(/[^\.0-9]/,'') //coords when waterfall up
-            console.log(currentSetting);
-            var foundTunerValue = currentSetting.search(acceptableRegex) !== -1
-            var isWaterfall = true
-            if(!foundTunerValue) {
-                isWaterfall = false
-                currentSetting = MyApi.readText(65,38,304,61,true,true).replace(/[^\.0-9]/,'') //coords when waterfall NOT up
-                console.log(currentSetting);
-                foundTunerValue = currentSetting.search(acceptableRegex) !== -1
+            var digits= [
+                    Qt.point(200,250),
+                    Qt.point(100,100),
+                    Qt.point(200,100),
+                    Qt.point(300,100),
+                    Qt.point(100,150),
+                    Qt.point(200,150),
+                    Qt.point(300,150),
+                    Qt.point(100,200),
+                    Qt.point(200,200),
+                    Qt.point(300,200),
+
+                    ]
+            var ent = Qt.point(375,200)
+
+            var smallVFO1 = MyApi.pixel(SmallVFOPt1)
+            var smallVFO2 = MyApi.pixel(SmallVFOPt2)
+
+            var smallVFO = Qt.colorEqual(smallVFO1, smallVFO2) && Qt.colorEqual(smallVFO1, "white")
+            console.log("VFO: " + (smallVFO ? "Small" : "Large"))
+            var delayIdx = 5;
+            var delayAmount = 5;
+
+            MyApi.openLoopDelay(delayIdx, function() { MyApi.touch(smallVFO ? SmallVFOClick : BigVFOClick) })
+            delayIdx = delayIdx + delayAmount;
+            MyApi.openLoopDelay(delayIdx, function() { MyApi.touch(FINPClick) })
+            delayIdx = delayIdx + delayAmount;
+            var toTouch = newSetting.split('').map(x => function() { MyApi.touch(digits[x]) })
+            for(var i = 0; i < toTouch.length; i++) {
+                MyApi.openLoopDelay(delayIdx, toTouch[i])
+                delayIdx = delayIdx + delayAmount;
             }
-
-            if(foundTunerValue) {
-                console.log("Found tuner setting " + currentSetting + " with waterfall " + (isWaterfall ? "showing" : "hidden"))
-                currentSetting = currentSetting.split('.').join('') //Strip '.'
-                var HzLsbRequired = newSetting.slice(-2) !== "00" //Determine what LSB we need
-                var HzLsbSet = !Qt.colorEqual("white", MyApi.pixel(isWaterfall ? LsbIndicatorWaterfall : LsbIndicatorNoWaterfall))
-                var tunerDelta = newSetting - currentSetting
-                var tickDelta = tunerDelta/(HzLsbRequired?1:100)
-
-                console.log("Current tuner setting: " + currentSetting + ", LSB: " + (HzLsbSet ? "Hz" : "Khz"))
-                console.log("Desired tuner setting: " + newSetting + ", LSB: " + (HzLsbRequired ? "Hz" : "Khz"));
-                console.log("Tuner Delta: " + tunerDelta + ", ticks: " + tickDelta)
-
-                var delay = 0;
-                //Change LSB if required
-                if(HzLsbRequired != HzLsbSet) {
-                    MyApi.openLoopDelay(delay, function() { MyApi.touch(isWaterfall ? LsbSetterWaterfall : LsbSetterNoWaterfall) })
-                }
-                delay = delay + 10 //330ms
-                var tickSize = 10
-                var intertick = 3 //33ms
-                var operations = Math.floor(Math.abs(tickDelta) / tickSize)
-                var perTick = Math.sign(tunerDelta) * tickSize
-                var remainder =
-                for(var i = 0; i < operations; i = i + 1) {
-                    MyApi.openLoopDelay(delay, function() { RDUController.spinMainDial(perTick) })
-                    delay = delay + intertick
-                }
-                MyApi.openLoopDelay(delay, function() { RDUController.spinMainDial(Math.sign(tunerDelta) * remainder )})
-
-                delay = delay + 10 //330ms
-
-                //Change LSB back
-                if(HzLsbRequired != HzLsbSet) {
-                    MyApi.openLoopDelay(delay, function() { RDUController.spinMainDial(isWaterfall ? LsbSetterWaterfall : LsbSetterNoWaterfall) })
-                }
+            MyApi.openLoopDelay(delayIdx++, function() { MyApi.touch(ent) })
+            delayIdx = delayIdx + delayAmount;
 
 
-            } else {
-                console.log("Failed to find sane-looking tuner settings");
-            }
-        });
+        })
 
     }
-
     /*
       Press the "EXIT" button, up to 3 times to get back to the home Screen
 
