@@ -11,6 +11,7 @@
 #include <QSharedPointer>
 #include <tesseract/baseapi.h>
 #include <leptonica/allheaders.h>
+#include <QMultiMap>
 
 class RadioState : public QObject
 {
@@ -28,9 +29,11 @@ public:
     Q_INVOKABLE void onScreen(QString screen, QJSValue jsCallback, int timeout = 0, QJSValue onTimeout = QJSValue());
     Q_INVOKABLE void onScreen(QString screen, QString secondScreen, QJSValue jsCallback);
     Q_INVOKABLE void press(FrontPanelButton button);
-    Q_INVOKABLE void touch(int x, int y);
+    Q_INVOKABLE void touch(QPoint p);
     Q_INVOKABLE void openLoopDelay(int delay, QJSValue callback);
     Q_INVOKABLE QString readText(int x, int y, int w, int h, bool greyscale = true, bool invert = false);
+    Q_INVOKABLE QColor pixel(QPoint p);
+    Q_INVOKABLE void waitText(int x, int y, int w, int h, QString text, QJSValue found, QJSValue timeout, bool greyscale = true, bool invert = false);
 
 
 signals:
@@ -43,6 +46,8 @@ signals:
     void injectMultiDial(int ticks);
 public slots:
     void newBuff(QByteArray* f);
+protected:
+    void timerEvent(QTimerEvent *event) override;
 private:
     QByteArray* m_buffLast;
     QString m_currentScreen;
@@ -68,6 +73,21 @@ private:
     QList<callback_t> m_callbacks;
 
     tesseract::TessBaseAPI *api;
+    struct {
+        QString expectedValue;
+        QJSValue jsCallback;
+        QTimer* timeout;
+        int x;
+        int y;
+        int w;
+        int h;
+        bool greyscale;
+        bool invert;
+    } typedef waitText_t;
+    QList<waitText_t> m_waitingText;
+
+    uint32_t m_workQueueIdx;
+    QMultiMap<uint32_t,QJSValue> m_workQueue;
 signals:
 
 };

@@ -111,18 +111,31 @@ RadioState::RadioState(QObject *parent) : QObject(parent)
         qInfo() << "Tesseract Init OK " << api->Version();
 
     }
+    this->startTimer(33);
 }
+
+void RadioState::timerEvent(QTimerEvent *event) {
+    m_workQueueIdx++;
+    auto items = m_workQueue.values(m_workQueueIdx);
+    for(auto & item: items) {
+        item.call();
+    }
+    m_workQueue.remove(m_workQueueIdx);
+}
+
 void RadioState::openLoopDelay(int delay, QJSValue callback) {
     if(!callback.isCallable()) {
         qWarning() << "Provided callback is not callable, not proceeding";
         return;
     }
-    auto timeoutTimer = new QTimer(this); //TODO is this leaking timers?
-    timeoutTimer->setSingleShot(true);
-    connect(timeoutTimer, &QTimer::timeout, [callback](){
-        callback.call();
-    });
-    timeoutTimer->start(delay);
+    m_workQueue.insert(m_workQueueIdx + 1 + delay,callback);
+
+//    auto timeoutTimer = new QTimer(this); //TODO is this leaking timers?
+//    timeoutTimer->setSingleShot(true);
+//    connect(timeoutTimer, &QTimer::timeout, [callback](){
+//        callback.call();
+//    });
+//    timeoutTimer->start(delay);
 }
 
 void RadioState::onScreen(QString screen, QJSValue jsCallback, int timeout, QJSValue onTimeout) {
@@ -227,8 +240,8 @@ void RadioState::press(FrontPanelButton button) {
     });
 }
 
-void RadioState::touch(int x, int y) {
-    emit injectTouch({x,y});
+void RadioState::touch(QPoint p) {
+    emit injectTouch(p);
     QTimer::singleShot(100, [this](){
         emit this->injectTouchRelease();
     });
@@ -250,4 +263,14 @@ QString RadioState::readText(int x, int y, int w, int h, bool greyscale, bool in
     outText = outText.trimmed();
     qInfo() << "OCR Result: " << outText;
     return outText;
+}
+
+QColor RadioState::pixel(QPoint p) {
+    auto img = QImage((const uchar*) m_buffLast->data(), COLUMNS, LINES, COLUMNS * sizeof(uint16_t),QImage::Format_RGB16);
+    auto ret = img.pixelColor(p);
+    return ret;
+}
+
+void RadioState::waitText(int x, int y, int w, int h, QString text, QJSValue found, QJSValue timeout, bool greyscale, bool invert) {
+
 }

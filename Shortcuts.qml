@@ -8,29 +8,55 @@ Rectangle {
     id: page
     width: 300; height: 200
     color: "#616161"
-    GroupBox {
-        title: "RF Power"
-        RowLayout {
-            anchors.fill: parent
-            spacing: 6
-            Button {
-                text: "5W"
-                onClicked: setRfPower(5)
+    ColumnLayout {
+        GroupBox {
+            title: "RF Power"
+            RowLayout {
+                anchors.fill: parent
+                spacing: 6
+                Button {
+                    text: "5W"
+                    onClicked: setRfPower(5)
+                }
+                Button {
+                    text: "50W"
+                    onClicked: setRfPower(50)
+                }
+                Button {
+                    text: "75W"
+                    onClicked: setRfPower(75)
+                }
+                Button {
+                    text: "100W"
+                    onClicked: setRfPower(100)
+                }
             }
-            Button {
-                text: "50W"
-                onClicked: setRfPower(50)
-            }
-            Button {
-                text: "75W"
-                onClicked: setRfPower(75)
-            }
-            Button {
-                text: "100W"
-                onClicked: setRfPower(100)
+        }
+        GroupBox {
+            title: "AM Radio"
+            GridLayout {
+                columns: 2
+                anchors.fill: parent
+                Button {
+                    text: "WCCO/News"
+                    onClicked: tuneTo("83000")
+                }
+                Button {
+                    text: "KUOM/University"
+                    onClicked: tuneTo("77000")
+                }
+                Button {
+                    text: "KTNF/Lefty"
+                    onClicked: tuneTo("95000")
+                }
+                Button {
+                    text: "WCCO Badly"
+                    onClicked: tuneTo("83001")
+                }
             }
         }
     }
+
     function setRfPower(power) {
         exitToHome(function(){
         clickMultiButton(function() {
@@ -54,6 +80,69 @@ Rectangle {
             MyApi.openLoopDelay(300, function() { MyApi.press(FrontPanelButton.Exit); })
         })})})
     }
+    function tuneTo(newSetting) {
+        exitToHome(function(){
+            var LsbIndicatorNoWaterfall = Qt.point(247,37)
+            var LsbIndicatorWaterfall = Qt.point(260,37)
+            var LsbSetterWaterfall = Qt.point(252,56)
+            var LsbSetterNoWaterfall = LsbSetterWaterfall //Same point works
+            var acceptableRegex = '[0-9]{1,2}\.[0-9]{3}\.[0-9]{2}'
+
+            var currentSetting = MyApi.readText(162,37,173,35,true,true).replace(/[^\.0-9]/,'') //coords when waterfall up
+            console.log(currentSetting);
+            var foundTunerValue = currentSetting.search(acceptableRegex) !== -1
+            var isWaterfall = true
+            if(!foundTunerValue) {
+                isWaterfall = false
+                currentSetting = MyApi.readText(65,38,304,61,true,true).replace(/[^\.0-9]/,'') //coords when waterfall NOT up
+                console.log(currentSetting);
+                foundTunerValue = currentSetting.search(acceptableRegex) !== -1
+            }
+
+            if(foundTunerValue) {
+                console.log("Found tuner setting " + currentSetting + " with waterfall " + (isWaterfall ? "showing" : "hidden"))
+                currentSetting = currentSetting.split('.').join('') //Strip '.'
+                var HzLsbRequired = newSetting.slice(-2) !== "00" //Determine what LSB we need
+                var HzLsbSet = !Qt.colorEqual("white", MyApi.pixel(isWaterfall ? LsbIndicatorWaterfall : LsbIndicatorNoWaterfall))
+                var tunerDelta = newSetting - currentSetting
+                var tickDelta = tunerDelta/(HzLsbRequired?1:100)
+
+                console.log("Current tuner setting: " + currentSetting + ", LSB: " + (HzLsbSet ? "Hz" : "Khz"))
+                console.log("Desired tuner setting: " + newSetting + ", LSB: " + (HzLsbRequired ? "Hz" : "Khz"));
+                console.log("Tuner Delta: " + tunerDelta + ", ticks: " + tickDelta)
+
+                var delay = 0;
+                //Change LSB if required
+                if(HzLsbRequired != HzLsbSet) {
+                    MyApi.openLoopDelay(delay, function() { MyApi.touch(isWaterfall ? LsbSetterWaterfall : LsbSetterNoWaterfall) })
+                }
+                delay = delay + 10 //330ms
+                var tickSize = 10
+                var intertick = 3 //33ms
+                var operations = Math.floor(Math.abs(tickDelta) / tickSize)
+                var perTick = Math.sign(tunerDelta) * tickSize
+                var remainder =
+                for(var i = 0; i < operations; i = i + 1) {
+                    MyApi.openLoopDelay(delay, function() { RDUController.spinMainDial(perTick) })
+                    delay = delay + intertick
+                }
+                MyApi.openLoopDelay(delay, function() { RDUController.spinMainDial(Math.sign(tunerDelta) * remainder )})
+
+                delay = delay + 10 //330ms
+
+                //Change LSB back
+                if(HzLsbRequired != HzLsbSet) {
+                    MyApi.openLoopDelay(delay, function() { RDUController.spinMainDial(isWaterfall ? LsbSetterWaterfall : LsbSetterNoWaterfall) })
+                }
+
+
+            } else {
+                console.log("Failed to find sane-looking tuner settings");
+            }
+        });
+
+    }
+
     /*
       Press the "EXIT" button, up to 3 times to get back to the home Screen
 
@@ -88,6 +177,6 @@ Rectangle {
     function tapRfPowerOption(atRfPowerCallback) {
         console.log("Clicking RF Power option")
         MyApi.onScreen("Multi","RF Power",atRfPowerCallback)
-        MyApi.touch(423,13)
+        MyApi.touch(Qt.point(423,13))
     }
 }

@@ -25,6 +25,7 @@ void RDUController::stepState() {
         previousState = currentState;
         currentState = nextState;
     }
+//    qInfo() << "Tick.";
     switch(currentState) {
     case RDU_Idle:
         nextState = idle();
@@ -218,6 +219,7 @@ RDUController::state RDUController::Connected() {
 RDUController::state RDUController::Ping() {
     //Too chatty to print every ping.
 //    emit notifyUserOfState(QString("Ping IC7300"));
+    qInfo() << "Ping";
     Request r = Request_init_default;
     r.which_payload = Request_ping_tag;
     r.payload.ping.magic[0] = 0xFE;
