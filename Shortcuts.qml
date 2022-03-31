@@ -38,56 +38,76 @@ Rectangle {
                 columns: 2
                 anchors.fill: parent
                 Button {
-                    text: "WCCO/News"
-                    onClicked: directDial("83000")
+                    text: "WCCO\nNews"
+                    onClicked: directDialAM("83000")
                 }
                 Button {
-                    text: "KUOM/University"
-                    onClicked: directDial("77000")
+                    text: "KUOM\nCollege"
+                    onClicked: directDialAM("77000")
                 }
                 Button {
-                    text: "KTNF/Lefty"
-                    onClicked: directDial("95000")
+                    text: "KTNF\nLefty"
+                    onClicked: directDialAM("95000")
                 }
                 Button {
-                    text: "WCCO Badly"
-                    onClicked: directDial("83001")
+                    text: "KTIS\nJesus 1"
+                    onClicked: directDialAM("90000")
+                }
+                Button {
+                    text: "KMNV\nSpanish"
+                    onClicked: directDialAM("140000")
+                }
+                Button {
+                    text: "KQSP\nTropical"
+                    onClicked: directDialAM("153000")
                 }
             }
         }
     }
-
+    //Set the RF power in the Multi Menu to the setpoint
     function setRfPower(power) {
+        var rfPowerOptionLocation = Qt.point(423,13)
         exitToHome(function(){
-        clickMultiButton(function() {
-        tapRfPowerOption(function() {
-            console.log("Set RF power to "+power)
-            //Use a tool like GIMP to find top,left and width,height
-            var currentSetting = MyApi.readText(382,35,76,22,true,false)
-            var lastCharacter = currentSetting.slice(-1)
-            if(lastCharacter === "%") {
-                var setpoint = currentSetting.slice(0,-1);
-                var ticks = power - setpoint;
-                console.log("Current RF Power Setting "+ currentSetting + " (" + setpoint +"). Need to move " + ticks)
-                //RDUController.spinMultiDial(ticks);
-                //Observation: If you spin the multi-dial "too soon" after the menu appears, it does not register the click
-                //100ms seems sufficent
-                MyApi.openLoopDelay(5, function() { RDUController.spinMultiDial(ticks); })
-            } else {
-                console.log("Failed to OCR RF Power setting.");
-            }
-            //With exit as well, if you do this too quickly after spinning the dial the radio does not recognize.
-            MyApi.openLoopDelay(15, function() { MyApi.press(FrontPanelButton.Exit); })
-        })})})
+        console.log("Opening multi-menu")
+            RDU.press(FrontPanelButton.Multi)
+            RDU.schedule(5,function() {
+                RDU.touch(rfPowerOptionLocation)
+                RDU.schedule(5,function() {
+                    console.log("Set RF power to "+power)
+                    //Use a tool like GIMP to find top,left and width,height
+                    var currentSetting = RDU.readText(382,35,76,22,true,false)
+                    var lastCharacter = currentSetting.slice(-1)
+                    if(lastCharacter === "%") {
+                        var setpoint = currentSetting.slice(0,-1);
+                        var ticks = power - setpoint;
+                        console.log("Current RF Power Setting "+ currentSetting + " (" + setpoint +"). Need to move " + ticks)
+                        //RDUController.spinMultiDial(ticks);
+                        //Observation: If you spin the multi-dial "too soon" after the menu appears, it does not register the click
+                        //100ms seems sufficent
+                        RDU.schedule(5, function() { RDUController.spinMultiDial(ticks); })
+                    } else {
+                        console.log("Failed to OCR RF Power setting.");
+                    }
+                    //With exit as well, if you do this too quickly after spinning the dial the radio does not recognize.
+                    RDU.schedule(15, function() { RDU.press(FrontPanelButton.Exit); })
+                  })
+            })
+        })
     }
-    function directDial(newSetting) {
+    //Dial in a frequency. Must be passed as a string
+    function directDialAM(newSetting) {
         exitToHome(function(){
-            var SmallVFOPt1 = Qt.point(200,67)
-            var SmallVFOPt2 = Qt.point(273,67)
-            var SmallVFOClick = Qt.point(185,56)
-            var BigVFOClick = Qt.point(110,70)
-            var FINPClick = Qt.point(377,94)
+            //Define buttons and symbols we'll use
+            var SmallVFOPt1 = Qt.point(200,67) //Left "." in VFO , if waterfall shown
+            var SmallVFOPt2 = Qt.point(273,67) //Right "." in VFO, if waterfall shown
+            var SmallVFOClick = Qt.point(185,56) //The Mhz digit to click to get to dialer
+            var BigVFOClick = Qt.point(110,70) //Same, but if no waterfall
+            var FINPClick = Qt.point(377,94) //FINP button on dialer
+            var ent = Qt.point(375,200) //Enter button on dialer
+            var mode = Qt.point(100,15) //Mode button top left
+            var modeAm = Qt.point(240,70) //AM button in mode menu
 
+            //Digits on the direct dialer, starting with 0
             var digits= [
                     Qt.point(200,250),
                     Qt.point(100,100),
@@ -98,69 +118,74 @@ Rectangle {
                     Qt.point(300,150),
                     Qt.point(100,200),
                     Qt.point(200,200),
-                    Qt.point(300,200),
+                    Qt.point(300,200)]
 
-                    ]
-            var ent = Qt.point(375,200)
-
-            var smallVFO1 = MyApi.pixel(SmallVFOPt1)
-            var smallVFO2 = MyApi.pixel(SmallVFOPt2)
-
+            //Read both pixel values.
+            var smallVFO1 = RDU.pixel(SmallVFOPt1)
+            var smallVFO2 = RDU.pixel(SmallVFOPt2)
+            //If they match and are white, the waterfall is up
             var smallVFO = Qt.colorEqual(smallVFO1, smallVFO2) && Qt.colorEqual(smallVFO1, "white")
-            console.log("VFO: " + (smallVFO ? "Small" : "Large"))
-            var delayIdx = 5;
-            var delayAmount = 5;
+            //console.log("VFO: " + (smallVFO ? "Small" : "Large"))
+            //Starting 4 * 33ms from now start our actions
+            var delayIdx = 4;
+            //Between each action, wait 4 * 33ms
+            var delayAmount = 4;
 
-            MyApi.openLoopDelay(delayIdx, function() { MyApi.touch(smallVFO ? SmallVFOClick : BigVFOClick) })
+            RDU.schedule(delayIdx, function() { RDU.touch(mode) })
             delayIdx = delayIdx + delayAmount;
-            MyApi.openLoopDelay(delayIdx, function() { MyApi.touch(FINPClick) })
+            RDU.schedule(delayIdx, function() { RDU.touch(modeAm) })
             delayIdx = delayIdx + delayAmount;
-            var toTouch = newSetting.split('').map(x => function() { MyApi.touch(digits[x]) })
+            RDU.schedule(delayIdx, function() { RDU.touch(smallVFO ? SmallVFOClick : BigVFOClick) })
+            delayIdx = delayIdx + delayAmount;
+            RDU.schedule(delayIdx, function() { RDU.touch(FINPClick) })
+            delayIdx = delayIdx + delayAmount;
+            //Take parameter and map it to digits and a lambda
+            var toTouch = newSetting.split('').map(x => function() { RDU.touch(digits[x]) })
+            //Queue up the digits
             for(var i = 0; i < toTouch.length; i++) {
-                MyApi.openLoopDelay(delayIdx, toTouch[i])
+                RDU.schedule(delayIdx, toTouch[i])
                 delayIdx = delayIdx + delayAmount;
             }
-            MyApi.openLoopDelay(delayIdx++, function() { MyApi.touch(ent) })
+            RDU.schedule(delayIdx++, function() { RDU.touch(ent) })
             delayIdx = delayIdx + delayAmount;
-
-
+            //No need to press exit as ENT brings us home.
         })
-
     }
     /*
-      Press the "EXIT" button, up to 3 times to get back to the home Screen
+      Press the "EXIT" button, up to 4 times to get back to the home Screen
 
-      THe situation where you need to press exit 3 times is:
+      THe situation where you need to press exit 4 times is:
         In the Menu
             In the Settings submenu
-                The screen is asleep
+                Adjusting a setting with the multi dial
+                    The screen is asleep
       */
-    function exitToHome(atHomeCallback, recurisonLimit = 3) {
+    function exitToHome(atHomeCallback, recurisonLimit = 4) {
         console.log("Exit to home, level " + recurisonLimit)
-        if(MyApi.currentScreen === "Home") {
+        if(atHomeScreen()) {
             console.log("Exit to home, at home screen")
             atHomeCallback()
         } else {
-            var timeoutCall = function() {
-                console.log("Exit to home, timeout callback")
-                exitToHome(atHomeCallback, recurisonLimit-1)
-            }
             if(recurisonLimit !== 0) {
-                MyApi.onScreen("Home",atHomeCallback, 250, timeoutCall)
-                MyApi.press(FrontPanelButton.Exit)
+                RDU.schedule(5,function() {
+                    RDU.press(FrontPanelButton.Exit)
+                    exitToHome(atHomeCallback, recurisonLimit-1)
+                })
             } else {
                 console.log("Failed to get to home screen")
             }
         }
     }
-    function clickMultiButton(atMultiCallback) {
-        console.log("Opening multi-menu")
-        MyApi.onScreen("Multi",atMultiCallback)
-        MyApi.press(FrontPanelButton.Multi)
-    }
-    function tapRfPowerOption(atRfPowerCallback) {
-        console.log("Clicking RF Power option")
-        MyApi.onScreen("Multi","RF Power",atRfPowerCallback)
-        MyApi.touch(Qt.point(423,13))
+    function atHomeScreen() {
+        var timeDot1Pt = Qt.point(452,6)
+        var timeDot2Pt = Qt.point(452,14)
+
+        //Read both pixel values.
+        var timeDot1 = RDU.pixel(timeDot1Pt)
+        var timeDot2 = RDU.pixel(timeDot2Pt)
+        //Assumes that if you can see the clock in the top right the home screen is active
+        //Doesnt work when you have the mode select menu up... donno what to do there.
+        var dotsPresent = Qt.colorEqual(timeDot1, timeDot2) && Qt.colorEqual(timeDot1, "white")
+        return dotsPresent
     }
 }

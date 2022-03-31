@@ -194,7 +194,7 @@ MainWindow::MainWindow(QWidget *parent)
 //            QUrl::fromLocalFile("Shortcuts.qml"));
 //    QObject *object = component.create();
     QQuickView* view = new QQuickView();
-    qmlRegisterSingletonInstance("Qt.example.qobjectSingleton", 1, 0, "MyApi", &this->m_radioState);
+    qmlRegisterSingletonInstance("Qt.example.qobjectSingleton", 1, 0, "RDU", &this->m_radioState);
     qmlRegisterSingletonInstance("Qt.example.qobjectSingleton", 1, 0, "RDUController", &this->m_controller);
     view->engine()->addImportPath("qrc:///");
     view->setSource(QUrl("qrc:/Shortcuts.qml"));

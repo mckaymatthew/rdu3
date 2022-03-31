@@ -16,8 +16,6 @@
 class RadioState : public QObject
 {
     Q_OBJECT
-    Q_PROPERTY(QString currentScreen MEMBER m_currentScreen NOTIFY screenChanged)
-    Q_PROPERTY(QString currentSecondScreen MEMBER m_currentSecondScreen NOTIFY secondScreenChanged)
     QML_ELEMENT
 public:
     enum FrontPanelButton {
@@ -26,14 +24,11 @@ public:
     };
     Q_ENUM(FrontPanelButton);
     explicit RadioState(QObject *parent = nullptr);
-    Q_INVOKABLE void onScreen(QString screen, QJSValue jsCallback, int timeout = 0, QJSValue onTimeout = QJSValue());
-    Q_INVOKABLE void onScreen(QString screen, QString secondScreen, QJSValue jsCallback);
     Q_INVOKABLE void press(FrontPanelButton button);
     Q_INVOKABLE void touch(QPoint p);
-    Q_INVOKABLE void openLoopDelay(int delay, QJSValue callback);
+    Q_INVOKABLE void schedule(int delay, QJSValue callback);
     Q_INVOKABLE QString readText(int x, int y, int w, int h, bool greyscale = true, bool invert = false);
     Q_INVOKABLE QColor pixel(QPoint p);
-    Q_INVOKABLE void waitText(int x, int y, int w, int h, QString text, QJSValue found, QJSValue timeout, bool greyscale = true, bool invert = false);
 
 
 signals:
@@ -50,42 +45,8 @@ protected:
     void timerEvent(QTimerEvent *event) override;
 private:
     QByteArray* m_buffLast;
-    QString m_currentScreen;
-    QString m_currentSecondScreen;
-    struct {
-        QColor color;
-        QList<QPoint> points;
-    } typedef pattern_t;
-    struct {
-        QString screenName;
-        QString secondScreenName;
-        QList<pattern_t> patterns;
-    } typedef screenMatch_t;
-    struct {
-        QString screenName;
-        bool secondScreen;
-        QString secondScreenName;
-        QJSValue jsCallback;
-
-        QTimer* timeout;
-    } typedef callback_t;
-    QList<screenMatch_t> m_screenMappings;
-    QList<callback_t> m_callbacks;
 
     tesseract::TessBaseAPI *api;
-    struct {
-        QString expectedValue;
-        QJSValue jsCallback;
-        QTimer* timeout;
-        int x;
-        int y;
-        int w;
-        int h;
-        bool greyscale;
-        bool invert;
-    } typedef waitText_t;
-    QList<waitText_t> m_waitingText;
-
     uint32_t m_workQueueIdx;
     QMultiMap<uint32_t,QJSValue> m_workQueue;
 signals:
