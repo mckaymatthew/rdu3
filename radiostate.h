@@ -9,6 +9,8 @@
 #include <QJSValue>
 #include <QTimer>
 #include <QSharedPointer>
+#include <tesseract/baseapi.h>
+#include <leptonica/allheaders.h>
 
 class RadioState : public QObject
 {
@@ -27,6 +29,9 @@ public:
     Q_INVOKABLE void onScreen(QString screen, QString secondScreen, QJSValue jsCallback);
     Q_INVOKABLE void press(FrontPanelButton button);
     Q_INVOKABLE void touch(int x, int y);
+    Q_INVOKABLE void openLoopDelay(int delay, QJSValue callback);
+    Q_INVOKABLE QString readText(int x, int y, int w, int h, bool greyscale = true, bool invert = false);
+
 
 signals:
     void screenChanged(const QString & screen);
@@ -35,9 +40,11 @@ signals:
     void injectData(QByteArray b);
     void injectTouch(QPoint p);
     void injectTouchRelease();
+    void injectMultiDial(int ticks);
 public slots:
     void newBuff(QByteArray* f);
 private:
+    QByteArray* m_buffLast;
     QString m_currentScreen;
     QString m_currentSecondScreen;
     struct {
@@ -59,6 +66,8 @@ private:
     } typedef callback_t;
     QList<screenMatch_t> m_screenMappings;
     QList<callback_t> m_callbacks;
+
+    tesseract::TessBaseAPI *api;
 signals:
 
 };

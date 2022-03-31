@@ -1,6 +1,6 @@
 QT       += core gui network qml quick
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
-CONFIG += c++11
+CONFIG += c++2a
 
 # You can make your code fail to compile if it uses deprecated APIs.
 # In order to do so, uncomment the following line.
@@ -141,6 +141,9 @@ CONFIG(release, debug|release) {
         QMAKE_POST_LINK += "&& $$shell_path($$PWD)\crashpad\bin\win\symbols.bat $$shell_path($$PWD) $$shell_path($$EXEDIR) rdu3 RDU3 0.0.1 > $$shell_path($$PWD)\crashpad\bin\win\symbols.out 2>&1"
     }
     macx {
+        INCLUDEPATH += /usr/local/include/
+        LIBS += -L/usr/local/lib -ltesseract -llept
+
         INCLUDEPATH += $$PWD/crashpad/include/
         INCLUDEPATH += $$PWD/crashpad/include/out/Default/gen/
         INCLUDEPATH += $$PWD/crashpad/include/third_party/mini_chromium/mini_chromium
@@ -148,6 +151,7 @@ CONFIG(release, debug|release) {
 
         # Crashpad libraries
         LIBS += -L$$PWD/crashpad/lib/mac/ -lbase -lclient -lcommon -lutil -lmig_output
+
 
         # System libraries
         LIBS += -L/usr/lib/ -lbsm
@@ -166,6 +170,19 @@ CONFIG(release, debug|release) {
     }
 } else {
     SOURCES += main.cpp
+    macx {
+        INCLUDEPATH += /usr/local/include/
+        LIBS += -L/usr/local/lib -ltesseract -llept
+    }
+    win32 {
+        INCLUDEPATH += C:/Users/mckaym/vcpkg/installed/x64-windows/include
+        LIBS += -LC:/Users/mckaym/vcpkg/installed/x64-windows/lib -ltesseract41 -lleptonica-1.82.0
+
+#        QMAKE_POST_LINK += "copy /y $$shell_path($$PWD)\crashpad\bin\win\crashpad_handler.exe $$shell_path($$EXEDIR)"
+        QMAKE_POST_LINK += "copy /y C:/Users/mckaym/vcpkg/packages/leptonica_x64-windows/bin/leptonica-1.82.0.dll $$OUT_PWD "
+        QMAKE_POST_LINK += "&& copy /y C:/Users/mckaym/vcpkg/packages/tesseract_x64-windows/bin/tesseract41.dll $$OUT_PWD "
+
+    }
 }
 
 DISTFILES += \

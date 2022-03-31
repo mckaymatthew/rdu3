@@ -105,6 +105,9 @@ void RDUController::stepState() {
         nextState = Error();
         break;
     }
+    if(haveAck) {
+        qInfo() << (QString("Clear Ack"));
+    }
     haveAck = false;
     if(nextState != currentState) {
         timeInState.restart();
@@ -308,9 +311,11 @@ void RDUController::readyRead() {
                 } else {
                     if(msg_resp.which_payload == Response_ping_tag) {
                         haveAck = true;
+                        qInfo() << (QString("Got Ping/Ack"));
                     }
                     if(msg_resp.which_payload == Response_ack_tag) {
                         haveAck = true;
+                        qInfo() << (QString("Ack"));
                     }
                     if(msg_resp.which_payload == Response_readWord_tag) {
                         if(msg_resp.payload.readWord.has_data) {

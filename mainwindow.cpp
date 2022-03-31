@@ -51,8 +51,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(&this->m_radioState, &RadioState::injectData, &m_controller, &RDUController::writeInject);
     connect(&this->m_radioState, &RadioState::injectTouch, &m_controller, &RDUController::injectTouch);
     connect(&this->m_radioState, &RadioState::injectTouchRelease, &m_controller, &RDUController::injectTouchRelease);
-
-
+    connect(&this->m_radioState, &RadioState::injectMultiDial, &m_controller, &RDUController::spinMultiDial);
 
     m_workerThread->start();
     QMetaObject::invokeMethod(m_worker,&RDUWorker::startWorker);
