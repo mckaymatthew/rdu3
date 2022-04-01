@@ -47,6 +47,8 @@ RadioState::RadioState(QObject *parent) : QObject(parent)
     api = new tesseract::TessBaseAPI();
     if (api->Init(NULL, "eng")) {
         qWarning() << "Tesseract Init FAIL " << api->Version();
+        delete api;
+        api = nullptr;
     } else {
         qInfo() << "Tesseract Init OK " << api->Version();
     }
@@ -72,7 +74,10 @@ void RadioState::schedule(int delay, QJSValue callback) {
 }
 
 void RadioState::newBuff(QByteArray* f) {
-    emit buffDispose(m_buffLast);
+    if(m_buffLast != nullptr) {
+        emit buffDispose(m_buffLast);
+        m_buffLast = nullptr;
+    }
     m_buffLast = f;
 }
 
@@ -97,6 +102,9 @@ void RadioState::touch(QPoint p) {
 }
 
 QString RadioState::readText(int x, int y, int w, int h, bool greyscale, bool invert) {
+    if(api == nullptr) {
+        return "Error, Tesseract failed to initialize";
+    }
     if(m_buffLast == nullptr) {
         return "Error no buffer";
     }

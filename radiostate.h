@@ -44,7 +44,7 @@ public slots:
 protected:
     void timerEvent(QTimerEvent *event) override;
 private:
-    QByteArray* m_buffLast;
+    QByteArray* m_buffLast = nullptr;
 
     tesseract::TessBaseAPI *api;
     uint32_t m_workQueueIdx;

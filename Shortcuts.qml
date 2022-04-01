@@ -6,14 +6,14 @@ import FrontPanelButtons 1.0
 
 Rectangle {
     id: page
-    width: 300; height: 200
+    width: 300; height: 300
     color: "#616161"
     ColumnLayout {
         GroupBox {
             title: "RF Power"
             RowLayout {
                 anchors.fill: parent
-                spacing: 6
+                spacing: 2
                 Button {
                     text: "5W"
                     onClicked: setRfPower(5)
@@ -35,7 +35,7 @@ Rectangle {
         GroupBox {
             title: "AM Radio"
             GridLayout {
-                columns: 2
+                columns: 3
                 anchors.fill: parent
                 Button {
                     text: "WCCO\nNews"
@@ -68,7 +68,7 @@ Rectangle {
     function setRfPower(power) {
         var rfPowerOptionLocation = Qt.point(423,13)
         exitToHome(function(){
-        console.log("Opening multi-menu")
+            console.log("Opening multi-menu")
             RDU.press(FrontPanelButton.Multi)
             RDU.schedule(5,function() {
                 RDU.touch(rfPowerOptionLocation)
@@ -81,9 +81,6 @@ Rectangle {
                         var setpoint = currentSetting.slice(0,-1);
                         var ticks = power - setpoint;
                         console.log("Current RF Power Setting "+ currentSetting + " (" + setpoint +"). Need to move " + ticks)
-                        //RDUController.spinMultiDial(ticks);
-                        //Observation: If you spin the multi-dial "too soon" after the menu appears, it does not register the click
-                        //100ms seems sufficent
                         RDU.schedule(5, function() { RDUController.spinMultiDial(ticks); })
                     } else {
                         console.log("Failed to OCR RF Power setting.");
