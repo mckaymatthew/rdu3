@@ -116,6 +116,16 @@ qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
 
+
+win32 {
+    INCLUDEPATH += C:/Users/mckaym/Documents/tesseract/include
+    INCLUDEPATH += C:/Users/mckaym/Documents/tesseract/build/include
+    INCLUDEPATH += C:/Users/mckaym/vcpkg/installed/x64-windows/include
+    LIBS += -LC:/Users/mckaym/vcpkg/installed/x64-windows/lib -lleptonica-1.82.0 -larchive
+    QMAKE_POST_LINK += "copy /y C:\Users\mckaym\Documents\tessdata\eng.traineddata $$shell_path($$OUT_PWD) "
+    QMAKE_POST_LINK += "&& copy /y C:\Users\mckaym\Documents\tesseract\build\bin\Release\*.dll $$shell_path($$OUT_PWD) "
+}
+
 # Crashpad rules for Windows
 CONFIG(release, debug|release) {
     CONFIG += force_debug_info
@@ -128,6 +138,7 @@ CONFIG(release, debug|release) {
 
         LIBS += -L$$PWD/crashpad/lib/win/ -lbase -lclient -lcommon -lutil
         LIBS += -lAdvapi32
+        LIBS += -LC:/Users/mckaym/Documents/tesseract/build/Release -ltesseract51
 
         # Build variables
         CONFIG(debug, debug|release) {
@@ -137,7 +148,7 @@ CONFIG(release, debug|release) {
             EXEDIR = $$OUT_PWD\release
         }
 
-        QMAKE_POST_LINK += "copy /y $$shell_path($$PWD)\crashpad\bin\win\crashpad_handler.exe $$shell_path($$EXEDIR)"
+        QMAKE_POST_LINK += "&& copy /y $$shell_path($$PWD)\crashpad\bin\win\crashpad_handler.exe $$shell_path($$EXEDIR)"
         QMAKE_POST_LINK += "&& $$shell_path($$PWD)\crashpad\bin\win\symbols.bat $$shell_path($$PWD) $$shell_path($$EXEDIR) rdu3 RDU3 0.0.1 > $$shell_path($$PWD)\crashpad\bin\win\symbols.out 2>&1"
     }
     macx {
@@ -175,14 +186,7 @@ CONFIG(release, debug|release) {
         LIBS += -L/usr/local/lib -ltesseract -llept
     }
     win32 {
-        INCLUDEPATH += C:/Users/mckaym/Documents/tesseract/include
-        INCLUDEPATH += C:/Users/mckaym/Documents/tesseract/build/include
-        INCLUDEPATH += C:/Users/mckaym/vcpkg/installed/x64-windows/include
         LIBS += -LC:/Users/mckaym/Documents/tesseract/build/Debug -ltesseract51d
-        LIBS += -LC:/Users/mckaym/vcpkg/installed/x64-windows/lib -lleptonica-1.82.0 -larchive
-
-        QMAKE_POST_LINK += "copy /y C:\Users\mckaym\Documents\tesseract\build\bin\Release\*.dll $$shell_path($$OUT_PWD) "
-        QMAKE_POST_LINK += "&& copy /y C:\Users\mckaym\Documents\tessdata\eng.traineddata $$shell_path($$OUT_PWD) "
     }
 }
 
