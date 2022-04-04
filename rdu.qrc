@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/">
+        <file>Shortcuts.qml</file>
+    </qresource>
+</RCC>

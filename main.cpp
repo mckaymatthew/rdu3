@@ -7,6 +7,7 @@
 #include <QStandardPaths>
 #include <QDateTime>
 #include <iostream>
+#include "radiostate.h"
 
 QAtomicInt g_NetworkBytesPerSecond;
 QAtomicInt g_NetworkLinesPerSecond;
@@ -37,14 +38,15 @@ void myMessageOutput(QtMsgType type, const QMessageLogContext &context, const QS
     break;
     case QtFatalMsg:
         txt = QString("%2 [FATAL] %1").arg(msg).arg(now.toString("yyyy.MM.dd hh.mm.ss.zzz"));
-        abort();
     }
 
     std::cout << txt.toLatin1().data() << std::endl << std::flush;
     *ts << txt << Qt::endl;
     ts->flush();
+    if(type == QtFatalMsg) {
+        abort();
+    }
 }
-
 
 int main(int argc, char *argv[])
 {

@@ -1,17 +1,19 @@
-QT       += core gui network
+QT       += core gui network qml quick
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
-
-CONFIG += c++11
+CONFIG += c++2a
 
 # You can make your code fail to compile if it uses deprecated APIs.
 # In order to do so, uncomment the following line.
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
-
+OTHER_FILES += \
+    Shortcuts.qml
 SOURCES += \
+    interperter.cpp \
     lrxddecoder.cpp \
     paths.cpp \
     peekpoke.cpp \
     preferences.cpp \
+    radiostate.cpp \
     renderlabel.cpp \
     rotaryaccumulator.cpp \
     serialdecoder.cpp \
@@ -44,10 +46,12 @@ SOURCES += \
     rduworker.cpp
 
 HEADERS += \
+    interperter.h \
     lrxddecoder.h \
     paths.h \
     peekpoke.h \
     preferences.h \
+    radiostate.h \
     renderlabel.h \
     rotaryaccumulator.h \
     serialdecoder.h \
@@ -94,6 +98,7 @@ HEADERS += \
     rduworker.h
 
 FORMS += \
+    interperter.ui \
     mainwindow.ui \
     peekpoke.ui \
     preferences.ui
@@ -111,6 +116,17 @@ qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
 
+
+win32 {
+    INCLUDEPATH += C:/Users/mckaym/Documents/tesseract/include
+    INCLUDEPATH += C:/Users/mckaym/Documents/tesseract/build/include
+    INCLUDEPATH += C:/Users/mckaym/vcpkg/installed/x64-windows/include
+    LIBS += -LC:/Users/mckaym/vcpkg/installed/x64-windows/lib -lleptonica-1.82.0 -larchive
+    QMAKE_POST_LINK += "copy /y C:\Users\mckaym\Documents\tessdata\eng.traineddata $$shell_path($$OUT_PWD) "
+    QMAKE_POST_LINK += "&& copy /y C:\Users\mckaym\Documents\tessdata\LICENSE $$shell_path($$OUT_PWD)\TESSERACT.LICENSE "
+    QMAKE_POST_LINK += "&& copy /y C:\Users\mckaym\Documents\tesseract\build\bin\Release\*.dll $$shell_path($$OUT_PWD) "
+}
+
 # Crashpad rules for Windows
 CONFIG(release, debug|release) {
     CONFIG += force_debug_info
@@ -123,6 +139,7 @@ CONFIG(release, debug|release) {
 
         LIBS += -L$$PWD/crashpad/lib/win/ -lbase -lclient -lcommon -lutil
         LIBS += -lAdvapi32
+        LIBS += -LC:/Users/mckaym/Documents/tesseract/build/Release -ltesseract51
 
         # Build variables
         CONFIG(debug, debug|release) {
@@ -132,10 +149,13 @@ CONFIG(release, debug|release) {
             EXEDIR = $$OUT_PWD\release
         }
 
-        QMAKE_POST_LINK += "copy /y $$shell_path($$PWD)\crashpad\bin\win\crashpad_handler.exe $$shell_path($$EXEDIR)"
+        QMAKE_POST_LINK += "&& copy /y $$shell_path($$PWD)\crashpad\bin\win\crashpad_handler.exe $$shell_path($$EXEDIR)"
         QMAKE_POST_LINK += "&& $$shell_path($$PWD)\crashpad\bin\win\symbols.bat $$shell_path($$PWD) $$shell_path($$EXEDIR) rdu3 RDU3 0.0.1 > $$shell_path($$PWD)\crashpad\bin\win\symbols.out 2>&1"
     }
     macx {
+        INCLUDEPATH += /usr/local/include/
+        LIBS += -L/usr/local/lib -ltesseract -llept
+
         INCLUDEPATH += $$PWD/crashpad/include/
         INCLUDEPATH += $$PWD/crashpad/include/out/Default/gen/
         INCLUDEPATH += $$PWD/crashpad/include/third_party/mini_chromium/mini_chromium
@@ -143,6 +163,7 @@ CONFIG(release, debug|release) {
 
         # Crashpad libraries
         LIBS += -L$$PWD/crashpad/lib/mac/ -lbase -lclient -lcommon -lutil -lmig_output
+
 
         # System libraries
         LIBS += -L/usr/lib/ -lbsm
@@ -161,4 +182,17 @@ CONFIG(release, debug|release) {
     }
 } else {
     SOURCES += main.cpp
+    macx {
+        INCLUDEPATH += /usr/local/include/
+        LIBS += -L/usr/local/lib -ltesseract -llept
+    }
+    win32 {
+        LIBS += -LC:/Users/mckaym/Documents/tesseract/build/Debug -ltesseract51d
+    }
 }
+
+DISTFILES += \
+    Shortcuts.qml
+
+RESOURCES += \
+    rdu.qrc

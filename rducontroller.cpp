@@ -34,6 +34,7 @@ void RDUController::stepState() {
         previousState = currentState;
         currentState = nextState;
     }
+//    qInfo() << "Tick.";
     switch(currentState) {
     case RDU_Idle:
         nextState = idle();
@@ -113,6 +114,9 @@ void RDUController::stepState() {
     case RDU_ErrorState:
         nextState = Error();
         break;
+    }
+    if(haveAck) {
+        qInfo() << (QString("Clear Ack"));
     }
     haveAck = false;
     if(nextState != currentState) {
@@ -226,6 +230,7 @@ RDUController::state RDUController::Connected() {
 RDUController::state RDUController::Ping() {
     //Too chatty to print every ping.
 //    emit notifyUserOfState(QString("Ping IC7300"));
+    qInfo() << "Ping";
     Request r = Request_init_default;
     r.which_payload = Request_ping_tag;
     r.payload.ping.magic[0] = 0xFE;
@@ -319,9 +324,11 @@ void RDUController::readyRead() {
                 } else {
                     if(msg_resp.which_payload == Response_ping_tag) {
                         haveAck = true;
+                        qInfo() << (QString("Got Ping/Ack"));
                     }
                     if(msg_resp.which_payload == Response_ack_tag) {
                         haveAck = true;
+                        qInfo() << (QString("Ack"));
                     }
                     if(msg_resp.which_payload == Response_readWord_tag) {
                         if(msg_resp.payload.readWord.has_data) {
@@ -350,6 +357,10 @@ void RDUController::readyRead() {
             }
         }
     }
+}
+
+void RDUController::writeInjectStr(QString toInject) {
+    writeInject(QByteArray::fromHex(toInject.toUtf8()));
 }
 void RDUController::writeInject(QByteArray toInject) {
     Request r = Request_init_default;
