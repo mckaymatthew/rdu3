@@ -18,6 +18,7 @@
 #include <QQmlEngine>
 #include <QQmlComponent>
 #include <QQuickView>
+#include <QBuffer>
 
 using namespace Qt;
 using namespace std;
@@ -132,12 +133,11 @@ MainWindow::MainWindow(QWidget *parent)
     //Connect action to make huge csv files..
     connect(this->ui->actionLog_Network_Metadata, &QAction::toggled, m_worker, &RDUWorker::logPacketData);
 
-//    QVariant index = m_settings.value("mainWindow/stackIndex", QVariant(0));
-//    this->ui->stackedWidget->setCurrentIndex(index.toInt());
-//    restoreGeometry(m_settings.value("mainWindow/geometry").toByteArray());
+    QVariant index = m_settings.value("mainWindow/stackIndex", QVariant(0));
+    this->ui->stackedWidget->setCurrentIndex(index.toInt());
+    restoreGeometry(m_settings.value("mainWindow/geometry").toByteArray());
 
     connect(this->ui->renderZone_1, &RenderLabel::wheeld, [this](QWheelEvent * e){
-
         QCoreApplication::postEvent(this->ui->mainDial, e->clone());
     });
 
@@ -187,22 +187,7 @@ MainWindow::MainWindow(QWidget *parent)
     });
 
     this->m_preferences.setModal(true);
-//    this->m_interp.show();
 
-//    QQmlEngine engine;
-//    QQmlComponent component(&engine,
-//            QUrl::fromLocalFile("Shortcuts.qml"));
-//    QObject *object = component.create();
-    QQuickView* view = new QQuickView();
-    qmlRegisterSingletonInstance("Qt.example.qobjectSingleton", 1, 0, "RDU", &this->m_radioState);
-    qmlRegisterSingletonInstance("Qt.example.qobjectSingleton", 1, 0, "RDUController", &this->m_controller);
-    view->engine()->addImportPath("qrc:///");
-    view->setSource(QUrl("qrc:/Shortcuts.qml"));
-    if (view->status() == QQuickView::Error) {
-       qWarning() << "View status is error?";
-    }
-    view->setResizeMode(QQuickView::SizeRootObjectToView);
-    view->show();
 
 }
 
@@ -235,10 +220,19 @@ void MainWindow::workerFramePassthrough(QByteArray* f) {
 void MainWindow::closeEvent(QCloseEvent *event)
 {
 
-//    QSettings settings("KE0PSL", "RDU3");
-//    qInfo() << "Close event, save parameters to " << settings.fileName();
-//    settings.setValue("mainWindow/geometry", saveGeometry());
-//    settings.setValue("mainWindow/stackIndex", this->ui->stackedWidget->currentIndex());
+    qInfo() << "Close event, save parameters to " << m_settings.fileName();
+//    QBuffer buffer;
+//    buffer.open(QIODevice::WriteOnly);
+//    QDataStream out(&buffer);
+//    out << this->geometry();
+//    QByteArray g2 = buffer.buffer();
+
+    QByteArray g = saveGeometry();
+    m_settings.setValue("mainWindow/geometry", g);
+//    m_settings.setValue("mainWindow/geometry", g2);
+    m_settings.setValue("mainWindow/stackIndex", this->ui->stackedWidget->currentIndex());
+//    m_settings.setValue("extensions/geometry", m_extensions->geometry());
+//    m_extensions->
 
     //Shut off FPGA Tx
     m_controller.writeWord(RDUController::rgb_control_csr,0);
@@ -355,4 +349,24 @@ void MainWindow::settingsChanged() {
     this->ui->volume->setMaximum(maxVal);
 }
 
+void MainWindow::on_actionExtensions_triggered(bool checked)
+{
+    if(!checked) {
+        if(m_extensions != nullptr) {
+            m_extensions->close();
+            m_extensions.clear();
+        }
+    } else {
+        m_extensions.reset(new QQuickView());
+        qmlRegisterSingletonInstance("org.ke0psl.singletons", 1, 0, "RDU", &this->m_radioState);
+        qmlRegisterSingletonInstance("org.ke0psl.singletons", 1, 0, "RDUController", &this->m_controller);
+        m_extensions->engine()->addImportPath("qrc:///");
+        m_extensions->setSource(QUrl("qrc:/Shortcuts.qml"));
+        if (m_extensions->status() == QQuickView::Error) {
+           qWarning() << "Failed to load extensions.";
+        }
+        m_extensions->setResizeMode(QQuickView::SizeRootObjectToView);
+        m_extensions->show();
+    }
+}
 

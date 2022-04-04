@@ -3,43 +3,43 @@
 #include <QImage>
 #include <QTimer>
 namespace {
-/*!
- * Convert QT QImage to PIX
- * input: QImage
- * result: PIX
- */
-PIX* qImage2PIX(const QImage& qImage) {
-  PIX * pixs;
+    /*!
+     * Convert QT QImage to PIX
+     * input: QImage
+     * result: PIX
+     */
+    PIX* qImage2PIX(const QImage& qImage) {
+      PIX * pixs;
 
-  QImage myImage = qImage.rgbSwapped();
-  int width = myImage.width();
-  int height = myImage.height();
-  int depth = myImage.depth();
-  int wpl = myImage.bytesPerLine() / 4;
+      QImage myImage = qImage.rgbSwapped();
+      int width = myImage.width();
+      int height = myImage.height();
+      int depth = myImage.depth();
+      int wpl = myImage.bytesPerLine() / 4;
 
-  pixs = pixCreate(width, height, depth);
-  pixSetWpl(pixs, wpl);
-  pixSetColormap(pixs, NULL);
-  l_uint32 *datas = pixs->data;
+      pixs = pixCreate(width, height, depth);
+      pixSetWpl(pixs, wpl);
+      pixSetColormap(pixs, NULL);
+      l_uint32 *datas = pixs->data;
 
-  for (int y = 0; y < height; y++) {
-    l_uint32 *lines = datas + y * wpl;
-    QByteArray a((const char*)myImage.scanLine(y), myImage.bytesPerLine());
-    for (int j = 0; j < a.size(); j++) {
-      *((l_uint8 *)lines + j) = a[j];
+      for (int y = 0; y < height; y++) {
+        l_uint32 *lines = datas + y * wpl;
+        QByteArray a((const char*)myImage.scanLine(y), myImage.bytesPerLine());
+        for (int j = 0; j < a.size(); j++) {
+          *((l_uint8 *)lines + j) = a[j];
+        }
+      }
+
+      const qreal toDPM = 1.0 / 0.0254;
+      int resolutionX = myImage.dotsPerMeterX() / toDPM;
+      int resolutionY = myImage.dotsPerMeterY() / toDPM;
+
+      if (resolutionX < 300) resolutionX = 300;
+      if (resolutionY < 300) resolutionY = 300;
+      pixSetResolution(pixs, resolutionX, resolutionY);
+
+      return pixEndianByteSwapNew(pixs);
     }
-  }
-
-  const qreal toDPM = 1.0 / 0.0254;
-  int resolutionX = myImage.dotsPerMeterX() / toDPM;
-  int resolutionY = myImage.dotsPerMeterY() / toDPM;
-
-  if (resolutionX < 300) resolutionX = 300;
-  if (resolutionY < 300) resolutionY = 300;
-  pixSetResolution(pixs, resolutionX, resolutionY);
-
-  return pixEndianByteSwapNew(pixs);
-}
 }
 RadioState::RadioState(QObject *parent) : QObject(parent)
 {
@@ -54,7 +54,12 @@ RadioState::RadioState(QObject *parent) : QObject(parent)
     }
     this->startTimer(33);
 }
-
+RadioState::~RadioState() {
+    if(api != nullptr) {
+        api->End();
+        delete api;
+    }
+}
 void RadioState::timerEvent(QTimerEvent *) {
     m_workQueueIdx++;
     auto items = m_workQueue.values(m_workQueueIdx);
@@ -70,7 +75,6 @@ void RadioState::schedule(int delay, QJSValue callback) {
         return;
     }
     m_workQueue.insert(m_workQueueIdx + 1 + delay,callback);
-
 }
 
 void RadioState::newBuff(QByteArray* f) {
@@ -82,6 +86,10 @@ void RadioState::newBuff(QByteArray* f) {
 }
 
 void RadioState::press(FrontPanelButton button) {
+    if(button == 0) {
+        qWarning() << "Failed to press button, unrecongized button in call";
+        return;
+    }
     qInfo() << "Button pressed from QML: " << button;
     uint16_t lesserButton = (uint16_t)button;
     auto enableStr = QString("fe%1fd").arg(lesserButton,4,16,QLatin1Char('0'));
@@ -101,7 +109,7 @@ void RadioState::touch(QPoint p) {
     });
 }
 
-QString RadioState::readText(int x, int y, int w, int h, bool greyscale, bool invert) {
+QString RadioState::readText(QRect p, bool greyscale, bool invert) {
     if(api == nullptr) {
         return "Error, Tesseract failed to initialize";
     }
@@ -115,9 +123,11 @@ QString RadioState::readText(int x, int y, int w, int h, bool greyscale, bool in
     auto pix = qImage2PIX(img);
     api->SetPageSegMode(tesseract::PSM_SINGLE_LINE);
     api->SetImage(pix);
-    api->SetRectangle(x, y, w, h);
-    auto outText = QString(api->GetUTF8Text()).trimmed();
+    api->SetRectangle(p.x(), p.y(), p.width(), p.height());
+    auto outUtf8 = api->GetUTF8Text();
+    auto outText = QString(outUtf8).trimmed();
     qInfo() << "OCR Result: " << outText;
+    delete outUtf8;
     pixDestroy(&pix);
     return outText;
 }

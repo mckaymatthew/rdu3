@@ -1,19 +1,23 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
- import QtQuick.Layouts 1.15
-import Qt.example.qobjectSingleton 1.0
+//import QtQuick.Layouts
+import org.ke0psl.singletons 1.0
 import FrontPanelButtons 1.0
+import QtQuick.Layouts 1.15
+import QtQuick.Window 2.0
 
 Rectangle {
     id: page
     width: 300; height: 300
     color: "#616161"
-    ColumnLayout {
+
+    GridLayout {
+        columns: 1
         GroupBox {
             title: "RF Power"
+            width: 190
             RowLayout {
                 anchors.fill: parent
-                spacing: 2
                 Button {
                     text: "5W"
                     onClicked: setRfPower(5)
@@ -34,48 +38,63 @@ Rectangle {
         }
         GroupBox {
             title: "AM Radio"
+            width: 190
             GridLayout {
-                columns: 3
                 anchors.fill: parent
+                columns: 3
                 Button {
+                    Layout.fillWidth:true
+                    Layout.fillHeight:true
                     text: "WCCO\nNews"
                     onClicked: directDialAM("83000")
                 }
                 Button {
+                    Layout.fillWidth:true
+                    Layout.fillHeight:true
                     text: "KUOM\nCollege"
                     onClicked: directDialAM("77000")
                 }
                 Button {
+                    Layout.fillWidth:true
+                    Layout.fillHeight:true
                     text: "KTNF\nLefty"
                     onClicked: directDialAM("95000")
                 }
                 Button {
+                    Layout.fillWidth:true
+                    Layout.fillHeight:true
                     text: "KTIS\nJesus 1"
                     onClicked: directDialAM("90000")
                 }
                 Button {
+                    Layout.fillWidth:true
+                    Layout.fillHeight:true
                     text: "KMNV\nSpanish"
                     onClicked: directDialAM("140000")
                 }
                 Button {
+                    Layout.fillWidth:true
+                    Layout.fillHeight:true
                     text: "KQSP\nTropical"
                     onClicked: directDialAM("153000")
                 }
             }
         }
     }
+
     //Set the RF power in the Multi Menu to the setpoint
     function setRfPower(power) {
         var rfPowerOptionLocation = Qt.point(423,13)
+        var rfPowerValueLocation = Qt.rect(382,35,76,22)
         exitToHome(function(){
             console.log("Opening multi-menu")
-            RDU.press(FrontPanelButton.Multi)
+            RDU.press(FrontPanelButton.FPB_Multi)
             RDU.schedule(5,function() {
                 RDU.touch(rfPowerOptionLocation)
                 RDU.schedule(5,function() {
                     console.log("Set RF power to "+power)
                     //Use a tool like GIMP to find top,left and width,height
-                    var currentSetting = RDU.readText(382,35,76,22,true,false)
+                    var currentSetting = RDU.readText(rfPowerValueLocation,true,false)
                     var lastCharacter = currentSetting.slice(-1)
                     if(lastCharacter === "%") {
                         var setpoint = currentSetting.slice(0,-1);
@@ -86,7 +105,7 @@ Rectangle {
                         console.log("Failed to OCR RF Power setting.");
                     }
                     //With exit as well, if you do this too quickly after spinning the dial the radio does not recognize.
-                    RDU.schedule(15, function() { RDU.press(FrontPanelButton.Exit); })
+                    RDU.schedule(15, function() { RDU.press(FrontPanelButton.FPB_Exit); })
                   })
             })
         })
@@ -151,7 +170,7 @@ Rectangle {
     /*
       Press the "EXIT" button, up to 4 times to get back to the home Screen
 
-      THe situation where you need to press exit 4 times is:
+      The situation where you need to press exit 4 times is:
         In the Menu
             In the Settings submenu
                 Adjusting a setting with the multi dial
@@ -165,7 +184,7 @@ Rectangle {
         } else {
             if(recurisonLimit !== 0) {
                 RDU.schedule(5,function() {
-                    RDU.press(FrontPanelButton.Exit)
+                    RDU.press(FrontPanelButton.FPB_Exit)
                     exitToHome(atHomeCallback, recurisonLimit-1)
                 })
             } else {
@@ -181,7 +200,7 @@ Rectangle {
         var timeDot1 = RDU.pixel(timeDot1Pt)
         var timeDot2 = RDU.pixel(timeDot2Pt)
         //Assumes that if you can see the clock in the top right the home screen is active
-        //Doesnt work when you have the mode select menu up... donno what to do there.
+        //Gives false positive you have the mode select menu up... donno what to do there.
         var dotsPresent = Qt.colorEqual(timeDot1, timeDot2) && Qt.colorEqual(timeDot1, "white")
         return dotsPresent
     }

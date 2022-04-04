@@ -123,6 +123,7 @@ win32 {
     INCLUDEPATH += C:/Users/mckaym/vcpkg/installed/x64-windows/include
     LIBS += -LC:/Users/mckaym/vcpkg/installed/x64-windows/lib -lleptonica-1.82.0 -larchive
     QMAKE_POST_LINK += "copy /y C:\Users\mckaym\Documents\tessdata\eng.traineddata $$shell_path($$OUT_PWD) "
+    QMAKE_POST_LINK += "&& copy /y C:\Users\mckaym\Documents\tessdata\LICENSE $$shell_path($$OUT_PWD)\TESSERACT.LICENSE "
     QMAKE_POST_LINK += "&& copy /y C:\Users\mckaym\Documents\tesseract\build\bin\Release\*.dll $$shell_path($$OUT_PWD) "
 }
 

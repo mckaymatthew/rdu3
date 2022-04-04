@@ -27,6 +27,8 @@
 #include "peekpoke.h"
 #include "interperter.h"
 #include "radiostate.h"
+#include <QQuickView>
+#include <QSharedPointer>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -57,7 +59,8 @@ private slots:
 
     void on_actionGenerate_App_Crash_triggered();
     void on_actionOpen_log_file_triggered();
-    void settingsChanged();
+    void settingsChanged();    
+    void on_actionExtensions_triggered(bool checked);
 
 protected:
     void closeEvent(QCloseEvent *event) override;
@@ -65,6 +68,7 @@ private:
     void connectPanelButton(QPushButton* but, RDUController* target, QString onClick, QString onRelease);
 
     Ui::MainWindow *ui;
+    QSharedPointer<QQuickView> m_extensions;
     QSettings m_settings;
     Preferences m_preferences;
     Interperter m_interp;
