@@ -45,8 +45,6 @@ MainWindow::MainWindow(QWidget *parent)
     connect(&m_controller, &RDUController::newLrxdBytes, &this->m_lrxd_decoder, &LrxdDecoder::newData);
     connect(m_worker, &RDUWorker::newFrame, this, &MainWindow::workerFramePassthrough);
 //    connect(this, &MainWindow::buffDispose, m_worker, &RDUWorker::buffDispose);
-//    connect(this, &MainWindow::buffDispose, &m_interp, &Interperter::newBuff);
-//    connect(&m_interp, &Interperter::buffDispose, m_worker, &RDUWorker::buffDispose);
     connect(this, &MainWindow::buffDispose, &this->m_radioState, &RadioState::newBuff);
     connect(&this->m_radioState, &RadioState::buffDispose, m_worker, &RDUWorker::buffDispose);
     connect(&this->m_radioState, &RadioState::injectData, &m_controller, &RDUController::writeInject);

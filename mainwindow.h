@@ -25,7 +25,6 @@
 #include "rotaryaccumulator.h"
 #include "preferences.h"
 #include "peekpoke.h"
-#include "interperter.h"
 #include "radiostate.h"
 #include <QQuickView>
 #include <QSharedPointer>
@@ -71,7 +70,6 @@ private:
     QSharedPointer<QQuickView> m_extensions;
     QSettings m_settings;
     Preferences m_preferences;
-    Interperter m_interp;
     RadioState m_radioState;
     PeekPoke m_poker;
     QThread* m_workerThread;
