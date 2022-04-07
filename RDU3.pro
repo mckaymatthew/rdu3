@@ -8,6 +8,7 @@ CONFIG += c++2a
 OTHER_FILES += \
     Shortcuts.qml
 SOURCES += \
+    firmware.cpp \
     lrxddecoder.cpp \
     paths.cpp \
     peekpoke.cpp \
@@ -17,9 +18,9 @@ SOURCES += \
     rotaryaccumulator.cpp \
     serialdecoder.cpp \
     simple.pb.c \
-#    ecpprog/ecpprog/ecpprog.c \
-#    ecpprog/ecpprog/jtag_tap.c \
-#    ecpprog/ecpprog/mpsse.c \
+    ecpprog/ecpprog/ecpprog.c \
+    ecpprog/ecpprog/jtag_tap.c \
+    ecpprog/ecpprog/mpsse.c \
     ltxddecoder.cpp \
     mainwindow.cpp \
     nanopb/pb_common.c \
@@ -45,6 +46,7 @@ SOURCES += \
     rduworker.cpp
 
 HEADERS += \
+    firmware.h \
     lrxddecoder.h \
     paths.h \
     peekpoke.h \
@@ -96,12 +98,14 @@ HEADERS += \
     rduworker.h
 
 FORMS += \
+    firmware.ui \
     mainwindow.ui \
     peekpoke.ui \
     preferences.ui
 
 INCLUDEPATH += $$PWD/qMDNS/src/
 INCLUDEPATH += $$PWD/nanopb
+INCLUDEPATH += $$PWD/ecpprog/ecpprog/
 INCLUDEPATH += $$PWD/qmdnsengine/src/include/
 
 # Create symbols for dump_syms and symupload
@@ -122,6 +126,10 @@ win32 {
     QMAKE_POST_LINK += "copy /y C:\Users\mckaym\Documents\tessdata\eng.traineddata $$shell_path($$OUT_PWD) "
     QMAKE_POST_LINK += "&& copy /y C:\Users\mckaym\Documents\tessdata\LICENSE $$shell_path($$OUT_PWD)\TESSERACT.LICENSE "
     QMAKE_POST_LINK += "&& copy /y C:\Users\mckaym\Documents\tesseract\build\bin\Release\*.dll $$shell_path($$OUT_PWD) "
+}
+macx {
+    INCLUDEPATH += /usr/local/Cellar/libftdi/1.5_2/include/libftdi1/
+    LIBS += -L/usr/local/lib -lftdi1
 }
 
 # Crashpad rules for Windows

@@ -368,3 +368,26 @@ void MainWindow::on_actionExtensions_triggered(bool checked)
     }
 }
 
+//extern "C" {
+//    int ecpprog_main(int argc, char **argv);
+//    extern int optind, opterr, optopt;
+//}
+
+//void MainWindow::on_actionEnumerate_JTAG_triggered()
+//{
+//    std::vector<std::string> arguments = {"./ecpprog", "-t"};
+
+//    std::vector<char*> argv;
+//    for (const auto& arg : arguments)
+//        argv.push_back((char*)arg.data());
+//    argv.push_back(nullptr);
+//    optind = 1;
+//    ecpprog_main(argv.size() - 1, argv.data());
+//}
+
+
+void MainWindow::on_actionFirmware_Update_triggered()
+{
+    m_firmware.show();
+}
+

@@ -28,6 +28,7 @@
 #include "radiostate.h"
 #include <QQuickView>
 #include <QSharedPointer>
+#include "firmware.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -61,6 +62,8 @@ private slots:
     void settingsChanged();    
     void on_actionExtensions_triggered(bool checked);
 
+    void on_actionFirmware_Update_triggered();
+
 protected:
     void closeEvent(QCloseEvent *event) override;
 private:
@@ -72,6 +75,7 @@ private:
     Preferences m_preferences;
     RadioState m_radioState;
     PeekPoke m_poker;
+    Firmware m_firmware;
     QThread* m_workerThread;
     RDUWorker* m_worker;
     RDUController m_controller;
