@@ -126,6 +126,11 @@ win32 {
     QMAKE_POST_LINK += "copy /y C:\Users\mckaym\Documents\tessdata\eng.traineddata $$shell_path($$OUT_PWD) "
     QMAKE_POST_LINK += "&& copy /y C:\Users\mckaym\Documents\tessdata\LICENSE $$shell_path($$OUT_PWD)\TESSERACT.LICENSE "
     QMAKE_POST_LINK += "&& copy /y C:\Users\mckaym\Documents\tesseract\build\bin\Release\*.dll $$shell_path($$OUT_PWD) "
+
+    INCLUDEPATH += C:/Users/mckaym/vcpkg/installed/x64-windows/include/libftdi1
+    LIBS += -LC:/Users/mckaym/vcpkg/installed/x64-windows/lib -lftdi1
+    QMAKE_POST_LINK += "&& copy /y C:\Users\mckaym\vcpkg\installed\x64-windows\bin\ftdi1.dll $$shell_path($$OUT_PWD) "
+    QMAKE_POST_LINK += "&& copy /y C:\Users\mckaym\vcpkg\installed\x64-windows\bin\libusb-1.0.dll $$shell_path($$OUT_PWD) "
 }
 macx {
     INCLUDEPATH += /usr/local/Cellar/libftdi/1.5_2/include/libftdi1/
