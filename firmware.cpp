@@ -222,7 +222,7 @@ bool Firmware::jtagOpen() {
         enter_spi_background_mode();
         flash_reset();
         killTimer(timerId);
-        timerId = startTimer(10);
+        timerId = startTimer(0);
         return true;
     }
     return false;
