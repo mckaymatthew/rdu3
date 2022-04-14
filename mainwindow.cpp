@@ -136,7 +136,9 @@ MainWindow::MainWindow(QWidget *parent)
     restoreGeometry(m_settings.value("mainWindow/geometry").toByteArray());
 
     connect(this->ui->renderZone_1, &RenderLabel::wheeld, [this](QWheelEvent * e){
-        QCoreApplication::postEvent(this->ui->mainDial, e->clone());
+        QWheelEvent* clonedEvent = new QWheelEvent(*e);
+         QCoreApplication::postEvent(this->ui->mainDial, clonedEvent);
+//TODO: Fix clone in 5.19 QT
     });
 
     connect(this->ui->actionSettings, &QAction::triggered, &this->m_preferences, &Preferences::show);

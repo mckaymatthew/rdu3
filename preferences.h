@@ -24,8 +24,6 @@ private slots:
 
     void on_lookupManual_clicked(bool checked);
 
-    void on_fontSlider_valueChanged(int value);
-
 private:
     Ui::Preferences *ui;
 

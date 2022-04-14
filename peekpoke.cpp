@@ -20,7 +20,7 @@ PeekPoke::~PeekPoke()
     delete ui;
 }
 
-void PeekPoke::newData(RDUController::Register r, uint32_t data) {
+void PeekPoke::newData(RDUController::Register, uint32_t data) {
     this->ui->value->setText(QString("%1").arg(data,8,16,QLatin1Char('0')).toUpper());
 }
 void PeekPoke::on_peek_clicked()

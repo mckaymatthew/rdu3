@@ -65,20 +65,14 @@ void Preferences::on_done_clicked()
     emit done(QDialog::Accepted);
 }
 
-void Preferences::on_lookupAutomatic_clicked(bool checked)
+void Preferences::on_lookupAutomatic_clicked(bool)
 {
     this->ui->deviceIp->setEnabled(false);
 }
 
 
-void Preferences::on_lookupManual_clicked(bool checked)
+void Preferences::on_lookupManual_clicked(bool)
 {
     this->ui->deviceIp->setEnabled(true);
-}
-
-
-void Preferences::on_fontSlider_valueChanged(int value)
-{
-
 }
 

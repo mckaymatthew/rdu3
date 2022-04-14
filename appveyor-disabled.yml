@@ -1,0 +1,91 @@
+image:
+  - Visual Studio 2019
+#  - macos
+platform:
+  - x64
+
+configuration:
+  - Release
+
+environment:
+  APPVEYOR_SAVE_CACHE_ON_ERROR: true
+  
+# scripts that are called at very beginning, before repo cloning
+init:
+    - ver
+    - cmake --version
+    - msbuild /version
+    - call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvars64.bat"
+    - call "C:\Qt\5.15.2\msvc2019_64\bin\qtenv2.bat"
+    - cd "%APPVEYOR_BUILD_FOLDER%"
+    - set PATH=%PATH%;C:\depot_tools;C:\Python38
+# scripts that run after cloning repository
+install:
+    - ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+    
+    # Do  VCPKG, install dependencies
+    - cd C:\tools\vcpkg
+    - git pull
+    - .\bootstrap-vcpkg.bat
+    # remove outdated versions
+    - vcpkg remove --outdated --recurse
+    # install dependencies
+    - vcpkg install --recurse --triplet x64-windows libftdi1 leptonica libarchive
+    
+     #Do  Google Crashpad
+    - cd \
+    - copy C:\Python38\python.exe C:\Python38\python3.exe
+    #TOOD: Fix this? Crashpad calls Python3...
+    - git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
+    - ps : |
+        $path = "C:\crashpad\crashpad-ok.txt"
+        If(!(test-path $path))
+        {
+              echo Crashpad is not built
+              $env:Path += ';C:\depot_tools;C:\Python38'
+              cd \
+              rm -r -fo crashpad
+              mkdir crashpad
+              cd crashpad
+              fetch crashpad
+              cd crashpad
+              gn gen out/Default
+              echo 'extra_cflags="/MD"' | Out-File -Encoding ASCII -FilePath C:\crashpad\crashpad\out\Default\args.gn
+              ninja -C out/Default
+              New-Item $path -type file
+        } else {
+              echo Crashpad is built, skip task
+        }
+        
+        $tespath = "C:\tesseract\tesseract-ok.txt"
+        If(!(test-path $tespath))
+        {
+              echo Tesseract is not built
+              cd \
+              rm -r -fo tesseract
+              git clone https://github.com/tesseract-ocr/tesseract.git
+              cd tesseract
+              git checkout tags/5.1.0
+              cmake . -B build -DCMAKE_BUILD_TYPE=Release -DSW_BUILD=OFF -DOPENMP_BUILD=OFF -DBUILD_TRAINING_TOOLS=OFF "-DCMAKE_TOOLCHAIN_FILE=C:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake"
+              cmake --build build --config Release --target install
+              build\bin\Release\tesseract.exe --version
+              New-Item $tespath -type file
+        } else {
+              echo Tesseract is built, skip task
+        }
+   
+   
+    # Make sure git repo submodules are up to date.
+    - cd "%APPVEYOR_BUILD_FOLDER%"
+    - git submodule init
+    - git submodule update
+#Speed up development, eventually remove this.
+cache:
+    - C:\Users\appveyor\AppData\Local\vcpkg
+    - c:\tools\vcpkg\installed\
+    - c:\crashpad\
+    - c:\tesseract\  -> appveyor.yml
+build_script:
+    - cd "%APPVEYOR_BUILD_FOLDER%"
+    - qmake RDU3.pro
+    - nmake

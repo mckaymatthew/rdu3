@@ -1,0 +1,126 @@
+name: C/C++ CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        #os: [windows-2019, macos-11]
+        include:
+        - os: macos-11
+          VCPKG_DEFAULT_TRIPLET: x64-osx
+          VCPKG_INSTALLED_DIR: /Users/runner/work/rdu3/rdu3/vcpkg_installed
+        - os: windows-2019
+          VCPKG_DEFAULT_TRIPLET: x64-windows
+          VCPKG_INSTALLED_DIR: D:/a/rdu3/rdu3/vcpkg_installed
+    env:
+      VCPKG_DEFAULT_TRIPLET: ${{ matrix.VCPKG_DEFAULT_TRIPLET }}
+      VCPKG_INSTALLED_DIR:  ${{ matrix.VCPKG_INSTALLED_DIR }}
+    steps:
+    - name:  Setup Platform (MacOS)
+      run:   |
+             brew install libtool automake
+             printenv
+      shell: bash
+      if: runner.os == 'macOS'
+    - name: Setup Platform (Windows)
+      uses: actions/setup-python@v3
+      with:
+        python-version: 2.7
+      if: runner.os == 'Windows'   
+    - uses: actions/checkout@v3
+      with:
+        submodules: recursive  
+    - name: Build Breakpad utilties (Windows)
+      run: |
+           cd breakpad_gyp
+           python.exe .\gyp_main.py  ..\breakpad\src\tools\windows\tools_windows.gyp
+           cd ..
+           cd breakpad
+           cat ..\fix_breakpad_warning.patch | git apply
+           cd src\tools\windows\symupload
+           msbuild symupload.sln  /property:Configuration=Release
+           cd ..\dump_syms
+           msbuild dump_syms.sln  /property:Configuration=Release
+      if: runner.os == 'Windows'
+    - name: Build Breakpad utilties (MacOS)
+      run: |
+           cd breakpad/src/tools/mac/dump_syms
+           xcodebuild -configuration Release -scheme dump_syms build
+           cd ../symupload
+           xcodebuild -configuration Release -scheme symupload build 
+      if: runner.os == 'macOS' 
+    - name: Build Crashpad (MacOS)
+      run: |
+           cd depot_tools
+           export PATH=$PATH:$(pwd)
+           cd ..
+           mkdir crashpad
+           cd crashpad
+           fetch crashpad
+           cd crashpad
+           gn gen out/Default
+           ninja -C out/Default     
+      if: runner.os == 'macOS'   
+    - name: Build Crashpad (Windows)
+      run: |
+           cd depot_tools
+           $Env:Path += “;$PWD” 
+           cd ..
+           mkdir crashpad
+           cd crashpad
+           fetch crashpad
+           cd crashpad
+           gn gen out/Default
+           echo 'extra_cflags="/MD"' | Out-File -Encoding ASCII out\Default\args.gn
+           ninja -C out/Default     
+      if: runner.os == 'Windows' 
+    - name: Download and compile dependencies
+      uses: lukka/run-vcpkg@dd5771b674fbfcb08753c23fff8dcde75d6ce435
+      with:
+        runVcpkgInstall: true
+    - name: Configure Tesseract (MacOS)
+      run: |
+           cd tesseract
+           cmake . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON -DSW_BUILD=OFF -DOPENMP_BUILD=OFF -DBUILD_TRAINING_TOOLS=OFF "-DCMAKE_TOOLCHAIN_FILE=$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/vcpkg_installed/$VCPKG_DEFAULT_TRIPLET/
+      if: runner.os == 'macOS' 
+      
+    - name: Configure Tesseract (Windows)
+      run: |
+           cd tesseract
+           cmake . -B build -DCMAKE_BUILD_TYPE=Release -DSW_BUILD=OFF -DOPENMP_BUILD=OFF -DBUILD_TRAINING_TOOLS=OFF -DCMAKE_TOOLCHAIN_FILE=D:/a/rdu3/rdu3/vcpkg/scripts/buildsystems/vcpkg.cmake -DCMAKE_PREFIX_PATH=D:/a/rdu3/b/vcpkg_installed/x64-windows  --trace-source=CMakeLists.txt --trace-expand
+           #TODO: Figure out build args to not have hardcoded paths
+           #TODO: Can Win/Mac be combined for this?
+      if: runner.os == 'Windows'
+      
+    - name: Patch Tesseract Linker (MacOS Hack)
+      run: |
+           cd tesseract
+           normalDir="`cd $GITHUB_WORKSPACE/vcpkg_installed/$VCPKG_DEFAULT_TRIPLET;pwd`"
+           echo "Before hack:"
+           cat build/CMakeFiles/tesseract.dir/link.txt
+           echo "Appling hack"
+           tr -d '\n' < build/CMakeFiles/tesseract.dir/link.txt > build/CMakeFiles/tesseract.dir/link-patched.txt
+           echo "$normalDir/lib/libxml2.a $normalDir/lib/liblzma.a $normalDir/lib/libzstd.a $normalDir/lib/liblz4.a $normalDir/lib/libbz2.a -liconv" >> build/CMakeFiles/tesseract.dir/link-patched.txt
+           rm build/CMakeFiles/tesseract.dir/link.txt
+           mv build/CMakeFiles/tesseract.dir/link-patched.txt build/CMakeFiles/tesseract.dir/link.txt
+           echo "After hack:"
+           cat build/CMakeFiles/tesseract.dir/link.txt
+      if: runner.os == 'macOS'
+    - name: Build Tesseract
+      run: |
+           cd tesseract
+           cmake --build build --config Release --target install -j2
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v2.14.0
+    - name: Build RDU 
+      run: |
+           qmake RDU3.pro
+           make

@@ -1,0 +1,9 @@
+{
+  "name": "rdu3",
+  "version-string": "0.0.1",
+  "dependencies": [
+    "libftdi1",
+    "leptonica",
+    "libarchive"
+  ]
+}

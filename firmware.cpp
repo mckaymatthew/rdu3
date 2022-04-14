@@ -1,8 +1,10 @@
+#define NOMINMAX
 #include "firmware.h"
 #include "ui_firmware.h"
 #include <QByteArray>
 #include <QRegularExpression>
 #include <QFile>
+#include <QDebug>
 
 namespace {
     bool sneaks;
@@ -97,7 +99,7 @@ void Firmware::timerEvent(QTimerEvent *) {
     }
     bool closeJtag = false;
     if(readback) {
-        auto amountToRead = std::min((qsizetype)1024, dataFlashImage.size() - dataReadback.size());
+        auto amountToRead = std::min((int)1024, (int) (dataFlashImage.size() - dataReadback.size()));
         if(amountToRead == 0) {
             updateLog(QString("JTAG: Readback done (%1 of %2 bytes read)").arg(dataReadback.size()).arg(dataFlashImage.size()));
             updateLog(QString("JTAG: Flash Verify %1.").arg(dataReadback == dataFlashImage ? "PASS":"FAIL"));

@@ -32,7 +32,7 @@ void RDUWorker::startWorker()
 
 }
 
-void RDUWorker::timerEvent(QTimerEvent *event) {
+void RDUWorker::timerEvent(QTimerEvent *) {
     double bytesPerSecond = m_statsBytes * globalsUpdatePerSecond;
     double linesPerSecond = m_statsLines * globalsUpdatePerSecond;
 //    qInfo() << QString("Instant BPS: %1, LPS: %2, Frames: %4").arg(bytesPerSecond).arg(linesPerSecond).arg(g_NetworkFramesTotal);

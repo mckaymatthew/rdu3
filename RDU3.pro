@@ -107,6 +107,8 @@ INCLUDEPATH += $$PWD/qMDNS/src/
 INCLUDEPATH += $$PWD/nanopb
 INCLUDEPATH += $$PWD/ecpprog/ecpprog/
 INCLUDEPATH += $$PWD/qmdnsengine/src/include/
+INCLUDEPATH += $$PWD/tesseract/include
+INCLUDEPATH += $$PWD/tesseract/build/include
 
 # Create symbols for dump_syms and symupload
 #CONFIG += force_debug_info
@@ -118,86 +120,66 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
 
 
-win32 {
-    INCLUDEPATH += C:/Users/mckaym/Documents/tesseract/include
-    INCLUDEPATH += C:/Users/mckaym/Documents/tesseract/build/include
-    INCLUDEPATH += C:/Users/mckaym/vcpkg/installed/x64-windows/include
-    LIBS += -LC:/Users/mckaym/vcpkg/installed/x64-windows/lib -lleptonica-1.82.0 -larchive
-    QMAKE_POST_LINK += "copy /y C:\Users\mckaym\Documents\tessdata\eng.traineddata $$shell_path($$OUT_PWD) "
-    QMAKE_POST_LINK += "&& copy /y C:\Users\mckaym\Documents\tessdata\LICENSE $$shell_path($$OUT_PWD)\TESSERACT.LICENSE "
-    QMAKE_POST_LINK += "&& copy /y C:\Users\mckaym\Documents\tesseract\build\bin\Release\*.dll $$shell_path($$OUT_PWD) "
+# Build variables
+CONFIG(debug, debug|release) {
+    EXEDIR = $$OUT_PWD\debug
+}
+CONFIG(release, debug|release) {
+    EXEDIR = $$OUT_PWD\release
+}
 
-    INCLUDEPATH += C:/Users/mckaym/vcpkg/installed/x64-windows/include/libftdi1
-    LIBS += -LC:/Users/mckaym/vcpkg/installed/x64-windows/lib -lftdi1
-    QMAKE_POST_LINK += "&& copy /y C:\Users\mckaym\vcpkg\installed\x64-windows\bin\ftdi1.dll $$shell_path($$OUT_PWD) "
-    QMAKE_POST_LINK += "&& copy /y C:\Users\mckaym\vcpkg\installed\x64-windows\bin\libusb-1.0.dll $$shell_path($$OUT_PWD) "
+
+LIBS += -L$$PWD/crashpad/crashpad/out/Default/obj/client -lclient -lcommon
+LIBS += -L$$PWD/crashpad/crashpad/out/Default/obj/util -lutil
+LIBS += -L$$PWD/crashpad/crashpad/out/Default/obj/third_party/mini_chromium/mini_chromium/base -lbase
+
+win32 {
+    VCPKG_TUPLE = x64-windows
+    VCPKG_LIBS = -larchive -lftdi1 -lleptonica-1.82.0
+    LIBS += -lAdvapi32
+    QMAKE_POST_LINK += "copy /y $$shell_path($$PWD)\vcpkg_installed\x64-windows\bin\*.dll $$shell_path($$EXEDIR) "
+    QMAKE_POST_LINK += "&& copy /y $$shell_path($$PWD)\crashpad\crashpad\out\Default\crashpad_handler.exe $$shell_path($$EXEDIR) "
 }
 macx {
-    INCLUDEPATH += /usr/local/Cellar/libftdi/1.5_2/include/libftdi1/
-    LIBS += -L/usr/local/lib -lftdi1
+    VCPKG_TUPLE = x64-osx
+    VCPKG_LIBS = -lftdi1 -lleptonica -lgif -ltiff -lwebp -ljpeg -lpng -lopenjp2 -llzma -lz -lusb-1.0 -lcurl -larchive -lbz2 -lzstd -lxml2 -llz4 -liconv
+    LIBS += -L$$PWD/tesseract/build/ -ltesseract
+    LIBS += -L$$PWD/crashpad/crashpad/out/Default/obj/client -lmig_output
+
+    # System libraries
+    LIBS += -L/usr/lib/ -lbsm
+    LIBS += -framework AppKit
+    LIBS += -framework Security
+
+    QMAKE_POST_LINK += "cp $$PWD/crashpad/crashpad/out/Default/crashpad_handler $$OUT_PWD/RDU3.app/Contents/MacOS/crashpad_handler"
 }
+
+INCLUDEPATH += $$PWD/vcpkg_installed/$$VCPKG_TUPLE/include
+INCLUDEPATH += $$PWD/vcpkg_installed/$$VCPKG_TUPLE/include/libftdi1/
+LIBS += -L$$PWD/vcpkg_installed/$$VCPKG_TUPLE/lib $$VCPKG_LIBS
+
+INCLUDEPATH += $$PWD/crashpad/crashpad/
+INCLUDEPATH += $$PWD/crashpad/crashpad/out/Default/gen/
+INCLUDEPATH += $$PWD/crashpad/crashpad/third_party/mini_chromium/mini_chromium
+
 
 # Crashpad rules for Windows
 CONFIG(release, debug|release) {
     CONFIG += force_debug_info
     CONFIG += separate_debug_info
+    SOURCES += main_crashpad.cpp
     win32 {
-        INCLUDEPATH += $$PWD/crashpad/include/
-        INCLUDEPATH += $$PWD/crashpad/include/out/Default/gen/
-        INCLUDEPATH += $$PWD/crashpad/include/third_party/mini_chromium/mini_chromium
-        SOURCES += main_crashpad.cpp
 
-        LIBS += -L$$PWD/crashpad/lib/win/ -lbase -lclient -lcommon -lutil
-        LIBS += -lAdvapi32
-        LIBS += -LC:/Users/mckaym/Documents/tesseract/build/Release -ltesseract51
-
-        # Build variables
-        CONFIG(debug, debug|release) {
-            EXEDIR = $$OUT_PWD\debug
-        }
-        CONFIG(release, debug|release) {
-            EXEDIR = $$OUT_PWD\release
-        }
-
-        QMAKE_POST_LINK += "&& copy /y $$shell_path($$PWD)\crashpad\bin\win\crashpad_handler.exe $$shell_path($$EXEDIR)"
-        QMAKE_POST_LINK += "&& $$shell_path($$PWD)\crashpad\bin\win\symbols.bat $$shell_path($$PWD) $$shell_path($$EXEDIR) rdu3 RDU3 0.0.1 > $$shell_path($$PWD)\crashpad\bin\win\symbols.out 2>&1"
+        LIBS += -L$$PWD\tesseract\build\Release -ltesseract51
+        QMAKE_POST_LINK += "&& $$shell_path($$PWD)\symbols.bat $$shell_path($$PWD)\breakpad\src\tools\windows\symupload\Release\ $$shell_path($$EXEDIR) rdu3 RDU3 0.0.1"
     }
     macx {
-        INCLUDEPATH += /usr/local/include/
-        LIBS += -L/usr/local/lib -ltesseract -llept
-
-        INCLUDEPATH += $$PWD/crashpad/include/
-        INCLUDEPATH += $$PWD/crashpad/include/out/Default/gen/
-        INCLUDEPATH += $$PWD/crashpad/include/third_party/mini_chromium/mini_chromium
-        SOURCES += main_crashpad.cpp
-
-        # Crashpad libraries
-        LIBS += -L$$PWD/crashpad/lib/mac/ -lbase -lclient -lcommon -lutil -lmig_output
-
-
-        # System libraries
-        LIBS += -L/usr/lib/ -lbsm
-        LIBS += -framework AppKit
-        LIBS += -framework Security
-
-        QMAKE_POST_LINK += "cp $$PWD/crashpad/bin/mac/crashpad_handler $$OUT_PWD/RDU3.app/Contents/MacOS/crashpad_handler"
-        QMAKE_POST_LINK += "&& bash $$PWD/crashpad/bin/mac/symbols.sh $$PWD $$OUT_PWD rdu3 RDU3 0.0.1 > $$PWD/crashpad/bin/mac/symbols.out 2>&1"
-    }
-    linux {
-        INCLUDEPATH += $$PWD/breakpad/include/
-        SOURCES += main_breakpad.cpp
-        LIBS += -L$$PWD/breakpad/lib/linux/ -lbreakpad_client
-        QMAKE_POST_LINK += "cp $$PWD/breakpad/bin/linux/minidump_upload $$OUT_PWD/minidump_upload"
-        QMAKE_POST_LINK += "&& $$PWD/breakpad/bin/linux/symbols.sh $$PWD $$OUT_PWD rdu3 RDU3 0.0.1 > $$PWD/breakpad/bin/linux/symbols.out 2>&1"
+        QMAKE_POST_LINK += "&& bash $$PWD/symbols.sh $$PWD $$OUT_PWD rdu3 RDU3 0.0.1"
     }
 } else {
     SOURCES += main.cpp
-    macx {
-        INCLUDEPATH += /usr/local/include/
-        LIBS += -L/usr/local/lib -ltesseract -llept
-    }
     win32 {
-        LIBS += -LC:/Users/mckaym/Documents/tesseract/build/Debug -ltesseract51d
+        LIBS += -L$$PWD\tesseract\build\Debug -ltesseract51d
     }
 }
 
