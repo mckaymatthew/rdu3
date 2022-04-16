@@ -35,20 +35,38 @@ jobs:
       with:
         python-version: 2.7
       if: runner.os == 'Windows'   
+    - name: Setup Platform, More (Windows)
+      uses: microsoft/setup-msbuild@v1.1
+      if: runner.os == 'Windows'
+#    - name: Remove Chocolatey and bad build system
+#      run: |
+#           Remove-Item -Path $env:ChocolateyInstall -Recurse -Force
+#      if: runner.os == 'Windows'
     - uses: actions/checkout@v3
       with:
         submodules: recursive  
     - name: Build Breakpad utilties (Windows)
       run: |
+           printenv
+           $pylessPath = ($env:PATH.Split(';') | Where-Object {-Not ($_ -Match 'Python')}) -join ';'
+           $py2Path = ($env:PATH.Split(';') | Where-Object {($_ -Match 'Python')} | Where-Object {($_ -Match '2')} ) -join ';'
+           echo $py2Path
+           $env:PATH = "$pylessPath$py2Path"
+           python --version
+           curl https://bootstrap.pypa.io/pip/2.7/get-pip.py -o get-pip.py
+           python get-pip.py
+           python -m pip install six
            cd breakpad_gyp
+           $env:GYP_MSVS_VERSION = 2019
            python.exe .\gyp_main.py  ..\breakpad\src\tools\windows\tools_windows.gyp
            cd ..
            cd breakpad
            cat ..\fix_breakpad_warning.patch | git apply
            cd src\tools\windows\symupload
+           echo Building symupload.sln
            msbuild symupload.sln  /property:Configuration=Release
-           cd ..\dump_syms
-           msbuild dump_syms.sln  /property:Configuration=Release
+           #cd ..\dump_syms
+           #msbuild dump_syms.sln  /property:Configuration=Release
       if: runner.os == 'Windows'
     - name: Build Breakpad utilties (MacOS)
       run: |
@@ -69,6 +87,11 @@ jobs:
            gn gen out/Default
            ninja -C out/Default     
       if: runner.os == 'macOS'   
+    - name: Setup Platform (Windows)
+      uses: actions/setup-python@v3
+      with:
+        python-version: 3.8
+      if: runner.os == 'Windows'   
     - name: Build Crashpad (Windows)
       run: |
            cd depot_tools
@@ -79,8 +102,19 @@ jobs:
            fetch crashpad
            cd crashpad
            gn gen out/Default
-           echo 'extra_cflags="/MD"' | Out-File -Encoding ASCII out\Default\args.gn
-           ninja -C out/Default     
+           #Not working for some reason...
+           cat out\Default\args.gn
+           echo 'extra_cflags="/MD"' | Add-Content -Encoding ASCII out\Default\args.gn
+           echo 'extra_cflags_c="/MD"' | Add-Content -Encoding ASCII out\Default\args.gn
+           gn args --list out/Default
+           cat out\Default\args.gn
+           ninja --version
+           ((Get-Content -path .\out\Default\toolchain.ninja) -replace "} /c ","} /MD /c " ) | Set-Content -Path .\out\Default\toolchain.ninja
+           #Gross?
+           #cd third_party\mini_chromium\mini_chromium\build\config
+           #cat ..\..\..\..\..\..\..\set_md_flags.patch  | git apply  --ignore-space-change --ignore-whitespace
+           #cd  ..\..\..\..\..
+           ninja -v -C out/Default
       if: runner.os == 'Windows' 
     - name: Download and compile dependencies
       uses: lukka/run-vcpkg@dd5771b674fbfcb08753c23fff8dcde75d6ce435
@@ -95,7 +129,7 @@ jobs:
     - name: Configure Tesseract (Windows)
       run: |
            cd tesseract
-           cmake . -B build -DCMAKE_BUILD_TYPE=Release -DSW_BUILD=OFF -DOPENMP_BUILD=OFF -DBUILD_TRAINING_TOOLS=OFF -DCMAKE_TOOLCHAIN_FILE=D:/a/rdu3/rdu3/vcpkg/scripts/buildsystems/vcpkg.cmake -DCMAKE_PREFIX_PATH=D:/a/rdu3/b/vcpkg_installed/x64-windows  --trace-source=CMakeLists.txt --trace-expand
+           cmake . -B build -DCMAKE_BUILD_TYPE=Release -DSW_BUILD=OFF -DOPENMP_BUILD=OFF -DBUILD_TRAINING_TOOLS=OFF -DCMAKE_TOOLCHAIN_FILE=D:/a/rdu3/rdu3/vcpkg/scripts/buildsystems/vcpkg.cmake -DCMAKE_PREFIX_PATH=D:/a/rdu3/rdu3/vcpkg_installed/x64-windows  --trace-source=CMakeLists.txt --trace-expand
            #TODO: Figure out build args to not have hardcoded paths
            #TODO: Can Win/Mac be combined for this?
       if: runner.os == 'Windows'
@@ -120,7 +154,15 @@ jobs:
            cmake --build build --config Release --target install -j2
     - name: Install Qt
       uses: jurplel/install-qt-action@v2.14.0
-    - name: Build RDU 
+    - name: Build RDU (Windows)
+      run: |
+           call "%programfiles(x86)%\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+           qmake RDU3.pro -spec win32-msvc
+           nmake
+      if: runner.os == 'Windows'
+      shell: cmd
+    - name: Build RDU (Mac)
       run: |
            qmake RDU3.pro
            make
+      if: runner.os == 'macOS'
