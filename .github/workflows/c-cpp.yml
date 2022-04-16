@@ -38,10 +38,6 @@ jobs:
     - name: Setup Platform, More (Windows)
       uses: microsoft/setup-msbuild@v1.1
       if: runner.os == 'Windows'
-#    - name: Remove Chocolatey and bad build system
-#      run: |
-#           Remove-Item -Path $env:ChocolateyInstall -Recurse -Force
-#      if: runner.os == 'Windows'
     - uses: actions/checkout@v3
       with:
         submodules: recursive  
