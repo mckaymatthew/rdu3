@@ -15,7 +15,8 @@ RDUController::RDUController(QObject *parent)
 
 {
     connect(&socket, &QTcpSocket::readyRead,this, &RDUController::readyRead);
-    connect(&socket, &QSslSocket::sslErrors, this, &RDUController::sslErrors);
+    connect(&socket, QOverload<const QList<QSslError> &>::of(&QSslSocket::sslErrors),
+        this, &RDUController::sslErrors);
 
     socket.setPeerVerifyName("localhost");
     auto sslConfiguration = socket.sslConfiguration();
@@ -475,7 +476,6 @@ void RDUController::injectTouchRelease() {
     qInfo() << (QString("Touch Release: %1.").arg(QString(injectParameter.toHex())));
     writeInject(injectParameter);
 }
-
 void RDUController::sslErrors(const QList<QSslError> &errors) {
 
     for(const QSslError& e : errors) {
