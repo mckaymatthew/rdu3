@@ -8,3 +8,11 @@ debug
 release
 ui_*.h
 symbols.out
+RDU3.vcxproj
+RDU3.vcxproj.filters
+RDU3.vcxproj.user
+Makefile
+Makefile.Debug
+Makefile.Release
+vcpkg_installed
+crashpad

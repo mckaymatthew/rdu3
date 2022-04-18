@@ -25,10 +25,10 @@
 #include "rotaryaccumulator.h"
 #include "preferences.h"
 #include "peekpoke.h"
-#include "interperter.h"
 #include "radiostate.h"
 #include <QQuickView>
 #include <QSharedPointer>
+#include "firmware.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -62,6 +62,8 @@ private slots:
     void settingsChanged();    
     void on_actionExtensions_triggered(bool checked);
 
+    void on_actionFirmware_Update_triggered();
+
 protected:
     void closeEvent(QCloseEvent *event) override;
 private:
@@ -71,9 +73,9 @@ private:
     QSharedPointer<QQuickView> m_extensions;
     QSettings m_settings;
     Preferences m_preferences;
-    Interperter m_interp;
     RadioState m_radioState;
     PeekPoke m_poker;
+    Firmware m_firmware;
     QThread* m_workerThread;
     RDUWorker* m_worker;
     RDUController m_controller;

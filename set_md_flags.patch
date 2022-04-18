@@ -1,0 +1,13 @@
+diff --git a/build/config/BUILD.gn b/build/config/BUILD.gn
+index e32e40d..04b433b 100644
+--- a/build/config/BUILD.gn
++++ b/build/config/BUILD.gn
+@@ -656,7 +656,7 @@ if (mini_chromium_is_win) {
+       } else {
+         extra_arflags = ""
+       }
+-
++      extra_cflags = " /MD"
+       tool("cc") {
+         depfile = "{{output}}.d"
+         pdbname = "{{target_out_dir}}/{{label_name}}_c.pdb"

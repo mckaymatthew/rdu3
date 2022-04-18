@@ -45,8 +45,6 @@ MainWindow::MainWindow(QWidget *parent)
     connect(&m_controller, &RDUController::newLrxdBytes, &this->m_lrxd_decoder, &LrxdDecoder::newData);
     connect(m_worker, &RDUWorker::newFrame, this, &MainWindow::workerFramePassthrough);
 //    connect(this, &MainWindow::buffDispose, m_worker, &RDUWorker::buffDispose);
-//    connect(this, &MainWindow::buffDispose, &m_interp, &Interperter::newBuff);
-//    connect(&m_interp, &Interperter::buffDispose, m_worker, &RDUWorker::buffDispose);
     connect(this, &MainWindow::buffDispose, &this->m_radioState, &RadioState::newBuff);
     connect(&this->m_radioState, &RadioState::buffDispose, m_worker, &RDUWorker::buffDispose);
     connect(&this->m_radioState, &RadioState::injectData, &m_controller, &RDUController::writeInject);
@@ -138,7 +136,9 @@ MainWindow::MainWindow(QWidget *parent)
     restoreGeometry(m_settings.value("mainWindow/geometry").toByteArray());
 
     connect(this->ui->renderZone_1, &RenderLabel::wheeld, [this](QWheelEvent * e){
-        QCoreApplication::postEvent(this->ui->mainDial, e->clone());
+        QWheelEvent* clonedEvent = new QWheelEvent(*e);
+         QCoreApplication::postEvent(this->ui->mainDial, clonedEvent);
+//TODO: Fix clone in 5.19 QT
     });
 
     connect(this->ui->actionSettings, &QAction::triggered, &this->m_preferences, &Preferences::show);
@@ -368,5 +368,28 @@ void MainWindow::on_actionExtensions_triggered(bool checked)
         m_extensions->setResizeMode(QQuickView::SizeRootObjectToView);
         m_extensions->show();
     }
+}
+
+//extern "C" {
+//    int ecpprog_main(int argc, char **argv);
+//    extern int optind, opterr, optopt;
+//}
+
+//void MainWindow::on_actionEnumerate_JTAG_triggered()
+//{
+//    std::vector<std::string> arguments = {"./ecpprog", "-t"};
+
+//    std::vector<char*> argv;
+//    for (const auto& arg : arguments)
+//        argv.push_back((char*)arg.data());
+//    argv.push_back(nullptr);
+//    optind = 1;
+//    ecpprog_main(argv.size() - 1, argv.data());
+//}
+
+
+void MainWindow::on_actionFirmware_Update_triggered()
+{
+    m_firmware.show();
 }
 

@@ -1,3 +1,24 @@
 [submodule "qmdnsengine"]
 	path = qmdnsengine
 url=https://github.com/mckaymatthew/qmdnsengine.git
+[submodule "ecpprog"]
+	path = ecpprog
+	url = https://github.com/mckaymatthew/ecpprog.git
+[submodule "libftdi"]
+	path = libftdi
+	url = git://developer.intra2net.com/libftdi
+[submodule "vcpkg"]
+	path = vcpkg
+	url = https://github.com/microsoft/vcpkg.git
+[submodule "tesseract"]
+	path = tesseract
+	url = https://github.com/tesseract-ocr/tesseract.git
+[submodule "depot_tools"]
+	path = depot_tools
+	url = https://chromium.googlesource.com/chromium/tools/depot_tools.git
+[submodule "breakpad"]
+	path = breakpad
+	url = https://chromium.googlesource.com/breakpad/breakpad
+[submodule "breakpad_gyp"]
+	path = breakpad_gyp
+	url = https://chromium.googlesource.com/external/gyp

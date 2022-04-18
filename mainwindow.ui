@@ -1068,6 +1068,7 @@ R</string>
     <addaction name="actionSave_PNG"/>
     <addaction name="actionOpen_log_file"/>
     <addaction name="actionSettings"/>
+    <addaction name="actionFirmware_Update"/>
    </widget>
    <widget class="QMenu" name="menuDebug">
     <property name="title">
@@ -1292,6 +1293,16 @@ R</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+E</string>
+   </property>
+  </action>
+  <action name="actionEnumerate_JTAG">
+   <property name="text">
+    <string>Enumerate JTAG</string>
+   </property>
+  </action>
+  <action name="actionFirmware_Update">
+   <property name="text">
+    <string>Firmware Update</string>
    </property>
   </action>
  </widget>

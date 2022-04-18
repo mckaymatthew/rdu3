@@ -6,7 +6,7 @@ RotaryAccumulator::RotaryAccumulator(QObject *parent) : QObject(parent)
     startTimer(wheelyBuffer);
 }
 
-void RotaryAccumulator::timerEvent(QTimerEvent *event) {
+void RotaryAccumulator::timerEvent(QTimerEvent *) {
     if(accumulated != 0) {
         emit output(accumulated);
         accumulated = 0;
