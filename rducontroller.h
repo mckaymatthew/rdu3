@@ -31,6 +31,7 @@ public:
         rotary_multi_dial_encoderOffset = 0xf0003004,
         rotary_bpf_in_encoderOffset = 0xf0003008,
         rotary_bpf_out_encoderOffset = 0xf000300c,
+        rotary_pwrk_click = 0xf0003010,
         timer0_load = 0xf0005000,
         timer0_reload = 0xf0005004,
         timer0_en = 0xf0005008,
@@ -144,6 +145,7 @@ private:
     bool haveAck = false;
     uint32_t* regReadDestination = nullptr;
     QSettings m_settings;
+    bool rduReadyLast = false;
 };
 
 #endif // RDUCONTROLLER_H

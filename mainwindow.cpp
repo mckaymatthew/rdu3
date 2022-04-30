@@ -131,6 +131,9 @@ MainWindow::MainWindow(QWidget *parent)
     //Connect action to make huge csv files..
     connect(this->ui->actionLog_Network_Metadata, &QAction::toggled, m_worker, &RDUWorker::logPacketData);
 
+    //Enable/Disable buttons depending on if connected
+    connect(&m_controller, &RDUController::RDUReady, this, &MainWindow::setEnables);
+
     QVariant index = m_settings.value("mainWindow/stackIndex", QVariant(0));
     this->ui->stackedWidget->setCurrentIndex(index.toInt());
     restoreGeometry(m_settings.value("mainWindow/geometry").toByteArray());
@@ -147,6 +150,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(&this->m_poker, &PeekPoke::poke, &this->m_controller, &RDUController::writeWord);
     connect(&this->m_controller, &RDUController::readWordDone, &this->m_poker, &PeekPoke::newData);
 
+    connect(this->ui->actionFirmware_Update, &QAction::triggered, &m_firmware, &QDialog::show);
 
     connect(this->ui->actionInhibit_Transmit, &QAction::triggered, std::bind(&RDUController::writeWord, &m_controller, RDUController::rgb_control_csr, 0));
     connect(this->ui->actionInhibit_Transmit, &QAction::triggered, std::bind(&MainWindow::updateAction, this, "Tx Inhibit"));
@@ -159,6 +163,11 @@ MainWindow::MainWindow(QWidget *parent)
 
     connect(this->ui->actionHaltSOC, &QAction::triggered, std::bind(&RDUController::writeWord, &m_controller, RDUController::ctrl_halt, 9));
     connect(this->ui->actionHaltSOC, &QAction::triggered, std::bind(&MainWindow::updateAction, this, "Halt SOC"));
+
+    constexpr double pwrkHoldTimeSeconds = 0.5;
+    constexpr uint32_t pwrkHoldCycles = pwrkHoldTimeSeconds * (55e6);
+    connect(this->ui->unit_power, &QPushButton::pressed, std::bind(&RDUController::writeWord, &m_controller, RDUController::rotary_pwrk_click, pwrkHoldCycles));
+    connect(this->ui->unit_power, &QPushButton::pressed, std::bind(&QWidget::setEnabled, this->ui->unit_power, false));
 
 
     connect(this->ui->mainDial, &QDial::valueChanged, &this->m_mainDialAccumulator, &RotaryAccumulator::input);
@@ -188,8 +197,8 @@ MainWindow::MainWindow(QWidget *parent)
 
     this->m_preferences.setModal(true);
 
-
 }
+
 
 MainWindow::~MainWindow()
 {
@@ -370,26 +379,16 @@ void MainWindow::on_actionExtensions_triggered(bool checked)
     }
 }
 
-//extern "C" {
-//    int ecpprog_main(int argc, char **argv);
-//    extern int optind, opterr, optopt;
-//}
 
-//void MainWindow::on_actionEnumerate_JTAG_triggered()
-//{
-//    std::vector<std::string> arguments = {"./ecpprog", "-t"};
+void MainWindow::setEnables(bool toState) {
+    //TODO: Make list more refined, rather than "every thing"
+    auto buttons = this->findChildren<QPushButton *>();
+    auto knobs = this->findChildren<QDial *>();
 
-//    std::vector<char*> argv;
-//    for (const auto& arg : arguments)
-//        argv.push_back((char*)arg.data());
-//    argv.push_back(nullptr);
-//    optind = 1;
-//    ecpprog_main(argv.size() - 1, argv.data());
-//}
-
-
-void MainWindow::on_actionFirmware_Update_triggered()
-{
-    m_firmware.show();
+    for(const auto b: buttons) {
+        b->setEnabled(toState);
+    }
+    for(const auto b: knobs) {
+        b->setEnabled(toState);
+    }
 }
-

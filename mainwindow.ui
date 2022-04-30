@@ -321,9 +321,9 @@ R</string>
                   <number>0</number>
                  </property>
                  <item>
-                  <widget class="QPushButton" name="special_power">
+                  <widget class="QPushButton" name="unit_power">
                    <property name="enabled">
-                    <bool>false</bool>
+                    <bool>true</bool>
                    </property>
                    <property name="text">
                     <string>POWER</string>

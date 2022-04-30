@@ -208,7 +208,10 @@ RDUController::state RDUController::EnableClock() {
 }
 RDUController::state RDUController::Connected() {
     emit notifyUserOfState(QString("Connected"));
-    emit RDUReady(true);
+    if(rduReadyLast != true) {
+        emit RDUReady(true);
+        rduReadyLast = true;
+    }
     const bool timeToPing = timeInState.elapsed() > 5000;
     if(timeToPing) {
         return RDUController::state::RDU_Ping;

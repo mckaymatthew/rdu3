@@ -48,6 +48,7 @@ private slots:
     void workerFramePassthrough(QByteArray* f);
     void updateAction(QString action);
     void updateState(QString state);
+    void setEnables(bool toState);
 
     void action_FPS_triggered(QAction *, bool);
     void on_actionSave_PNG_triggered();
@@ -61,9 +62,6 @@ private slots:
     void on_actionOpen_log_file_triggered();
     void settingsChanged();    
     void on_actionExtensions_triggered(bool checked);
-
-    void on_actionFirmware_Update_triggered();
-
 protected:
     void closeEvent(QCloseEvent *event) override;
 private:
